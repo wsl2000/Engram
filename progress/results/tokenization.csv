@@ -1,0 +1,4 @@
+job_id,status,nodes,workers,target_tokens,output_tokens,shards,notes
+165112,canceled,10,80,90000000000,0,0,"HF 504 before 1B flush; canceled and fixed flushing"
+165134,failed_partial,2,16,5000000000,4690822209,60,"HF 504 after partial 100M shards flushed"
+

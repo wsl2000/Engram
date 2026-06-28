@@ -35,10 +35,44 @@ def cosine_lr(step: int, max_steps: int, peak_lr: float, warmup_frac: float, min
     return peak_lr * (min_lr_ratio + 0.5 * (1 - min_lr_ratio) * (1 + math.cos(math.pi * progress)))
 
 
+def resolve_max_steps(override: int | None, configured: int) -> int:
+    return int(configured if override is None else override)
+
+
 def save_checkpoint(path: Path, model: DDP | EngramTransformerLM, optimizer: torch.optim.Optimizer, step: int) -> None:
     raw_model = model.module if isinstance(model, DDP) else model
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"model": raw_model.state_dict(), "optimizer": optimizer.state_dict(), "step": step}, path)
+
+
+def build_model_on_device(
+    shape: ModelShape,
+    routed_experts: int,
+    engram_rows: int,
+    engram_enabled: bool,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> EngramTransformerLM:
+    if device.type == "cuda":
+        old_dtype = torch.get_default_dtype()
+        try:
+            torch.set_default_dtype(dtype)
+            with torch.device(device):
+                return EngramTransformerLM(
+                    shape=shape,
+                    routed_experts=routed_experts,
+                    engram_rows=engram_rows,
+                    engram_enabled=engram_enabled,
+                )
+        finally:
+            torch.set_default_dtype(old_dtype)
+    model = EngramTransformerLM(
+        shape=shape,
+        routed_experts=routed_experts,
+        engram_rows=engram_rows,
+        engram_enabled=engram_enabled,
+    )
+    return model.to(device=device, dtype=dtype)
 
 
 def main() -> None:
@@ -47,6 +81,9 @@ def main() -> None:
     parser.add_argument("--token-files", nargs="+", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--max-steps-override", type=int)
+    parser.add_argument("--grad-accum-override", type=int)
+    parser.add_argument("--micro-batch-size-override", type=int)
+    parser.add_argument("--no-checkpoint", action="store_true")
     parser.add_argument("--calibration", action="store_true")
     args = parser.parse_args()
 
@@ -55,28 +92,52 @@ def main() -> None:
     cfg = json.loads(Path(args.config).read_text())
     torch.manual_seed(int(cfg["seed"]))
     shape = ModelShape(**cfg["model"])
-    model = EngramTransformerLM(
+    if rank == 0:
+        print(json.dumps({"event": "build_model_start", "arm": cfg["arm"], "seed": cfg["seed"], "device": str(device)}), flush=True)
+    model = build_model_on_device(
         shape=shape,
         routed_experts=int(cfg["routed_experts"]),
         engram_rows=int(cfg["engram_rows"]),
         engram_enabled=bool(cfg["engram_enabled"]),
-    ).to(device=device, dtype=torch.bfloat16)
+        device=device,
+        dtype=torch.bfloat16,
+    )
+    if rank == 0 and device.type == "cuda":
+        free, total = torch.cuda.mem_get_info(device)
+        print(json.dumps({"event": "build_model_done", "free_bytes": free, "total_bytes": total}), flush=True)
     if world > 1:
         model = DDP(model, device_ids=[local_rank], output_device=local_rank)
+        if rank == 0:
+            print(json.dumps({"event": "ddp_wrap_done", "world_size": world}), flush=True)
 
     train_cfg = cfg["train"]
+    if rank == 0:
+        print(json.dumps({"event": "optimizer_start", "optimizer": "AdamW"}), flush=True)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=float(train_cfg["peak_lr"]),
         betas=(float(train_cfg["adam_beta1"]), float(train_cfg["adam_beta2"])),
         weight_decay=float(train_cfg["weight_decay"]),
     )
-    max_steps = int(args.max_steps_override or train_cfg["max_steps"])
+    if rank == 0 and device.type == "cuda":
+        free, total = torch.cuda.mem_get_info(device)
+        print(json.dumps({"event": "optimizer_done", "free_bytes": free, "total_bytes": total}), flush=True)
+    max_steps = resolve_max_steps(args.max_steps_override, train_cfg["max_steps"])
+    if max_steps <= 0:
+        if rank == 0:
+            print(json.dumps({"event": "max_steps_zero_exit"}), flush=True)
+        if dist.is_initialized():
+            dist.destroy_process_group()
+        return
     if "grad_accum_steps" in train_cfg:
         grad_accum = max(1, int(train_cfg["grad_accum_steps"]))
     else:
         grad_accum = max(1, int(train_cfg["grad_accum_steps_80gpu"] * 80 / world))
+    if args.grad_accum_override is not None:
+        grad_accum = max(1, int(args.grad_accum_override))
     micro_bsz = int(train_cfg["micro_batch_size"])
+    if args.micro_batch_size_override is not None:
+        micro_bsz = max(1, int(args.micro_batch_size_override))
     loader_seed = int(cfg["seed"]) + rank * 1_000_003
     loader = iter(
         PackedMemmapLoader(
@@ -143,7 +204,9 @@ def main() -> None:
                 f.write(json.dumps(metrics) + "\n")
             print(json.dumps(metrics), flush=True)
             ckpt_due = (time.time() - last_ckpt) / 60 >= float(train_cfg["checkpoint_minutes"])
-            if ckpt_due or step + 1 == max_steps or (args.calibration and step + 1 == max_steps):
+            if not args.no_checkpoint and (
+                ckpt_due or step + 1 == max_steps or (args.calibration and step + 1 == max_steps)
+            ):
                 save_checkpoint(output_dir / f"ckpt_step{step+1:06d}.pt", model, optimizer, step + 1)
                 last_ckpt = time.time()
     if dist.is_initialized():

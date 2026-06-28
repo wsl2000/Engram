@@ -1,0 +1,6 @@
+arm,probe,world_size,status,free_bytes_after_build,free_bytes_after_optimizer,step_time_s,tokens_per_s,notes
+A,zero_step_build,1,pass,74965843968,74965843968,,,"direct GPU bf16 build; AdamW state not allocated until step"
+B,zero_step_build,1,pass,74944872448,74944872448,,,"direct GPU bf16 build; AdamW state not allocated until step"
+A,one_step,1,pass,74965843968,74965843968,4.384220361709595,467.1298043972857,"completed step; accidental 27GB checkpoint removed"
+B,one_step,1,pass,74944872448,74944872448,4.299782037734985,476.30321305282575,"completed with --no-checkpoint"
+
