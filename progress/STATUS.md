@@ -1,22 +1,23 @@
-# H0.8 — tokenization smoke fixed; ready to launch CPU tokenize job
+# H1.2 — 80GPU tiny smoke pass; cn17 excluded
 
-- Elapsed: H0.8
+- Elapsed: H1.2
 - Active run: setup only; no training launched
 - Step/tokens vs target: 0 / TBD; tokens/run will be set by 200-step calibration
-- Measured MFU and tok/s: TBD after calibration
+- Measured MFU and tok/s: real calibration TBD; 80GPU tiny smoke reached 1.04M tok/s on tiny config step 2 (not meaningful for target MFU)
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
-- Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands will carry explicit `--time/--mem` plus shell `timeout` for probes
-- Node health: 10-node immediate probe succeeded; 80x H100-80GB reachable (`cn02,cn03,cn04,cn13,cn14,cn15,cn16,cn17,cn34,cn35`, 8 GPUs each, 81559 MiB)
+- Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands carry explicit `--time/--mem` plus shell `timeout` for probes
+- Node health: 80x H100-80GB reachable, but `cn17` fails 8-rank CUDA context creation with OOM on local ranks 4/5 despite empty `nvidia-smi`; exclude `cn17` from training nodelists
+- Clean 80GPU smoke nodelist: `cn03,cn04,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn34`
 - Feedback loop: no `feedback/` directory present yet
 - User note: searched for `43_intro`; no matching repo/workspace task file found, so continuing from `handoff.md`
 - Environment: PyTorch 2.9.1+cu128, datasets/transformers/lm-eval present; FlashAttention/Transformer Engine absent
 - Judgment call: Muon modules not installed/vetted; fixed optimizer to AdamW for all runs
-- Implementation: added pure PyTorch DDP scaffold, MoE full replication, EngramRead, tokenizer script, training entry, Slurm calibration script
-- Local gates: `pytest -q` passed 8/8; `py_compile` passed; synthetic paired-loader first 100 batches hash matched exactly
+- Implementation: added pure PyTorch DDP scaffold, MoE full replication, EngramRead, tokenizer script, training entry, Slurm calibration script; fixed DDP loader seed to split ranks while preserving A/B pairing
+- Local gates: `pytest -q` passed 9/9; `py_compile` passed; synthetic paired-loader first 100 batches hash matched exactly
 - Tokenization: DeepSeek-V3 tokenizer + FineWeb-Edu `sample-350BT` smoke succeeded; real smoke paired-loader hash matched; tokenization script now batches docs and writes per-worker manifests
-- Tokenization anomaly/fix: initial multi-worker smoke showed manifest overwrite and one transient HF listing delay; fixed manifests to `manifest_w*.json`, added `scripts/list_token_shards.py`, and rechecked worker 1 successfully under 180s
-- Slurm tokenize script: fixed to call `srun` inside `sbatch --wrap`; `sbatch --test-only` passed for 10 nodes / 80 tasks / 4 CPU per task / 4G per CPU
+- Tokenization anomaly/fix: 80-worker job 165112 hit HF 504 and was canceled before 1B shard flush; fixed `finally` flush, disabled non-tty tqdm, and reduced shard size to 100M
+- Slurm smoke: 1xH100 tiny training passed; 80xH100 tiny DDP passed on clean nodelist after excluding `cn17`
 - Invariants: active params `475,136,000` both arms; A non-embed `4,505,600,000`; B non-embed `4,505,598,976`; delta `1,024`; Engram sparse budget fraction `22.47%`; tokens/step on 80 GPUs `4,259,840`; 70B max steps `16,432`
-- Next: push tokenization fix, launch CPU tokenization, then prepare bounded Slurm model smoke/calibration
+- Next: push H1.2 snapshot, relaunch smaller robust tokenization, then attempt real model memory/calibration gate
 - ETA: preliminary verdict target remains H12 if infra/training gates pass

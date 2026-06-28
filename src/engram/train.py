@@ -72,15 +72,19 @@ def main() -> None:
         weight_decay=float(train_cfg["weight_decay"]),
     )
     max_steps = int(args.max_steps_override or train_cfg["max_steps"])
-    grad_accum = max(1, int(train_cfg["grad_accum_steps_80gpu"] * 80 / world))
+    if "grad_accum_steps" in train_cfg:
+        grad_accum = max(1, int(train_cfg["grad_accum_steps"]))
+    else:
+        grad_accum = max(1, int(train_cfg["grad_accum_steps_80gpu"] * 80 / world))
     micro_bsz = int(train_cfg["micro_batch_size"])
+    loader_seed = int(cfg["seed"]) + rank * 1_000_003
     loader = iter(
         PackedMemmapLoader(
             LoaderConfig(
                 token_files=tuple(args.token_files),
                 seq_len=shape.seq_len,
                 batch_size=micro_bsz,
-                seed=int(cfg["seed"]),
+                seed=loader_seed,
             )
         )
     )
@@ -130,6 +134,7 @@ def main() -> None:
             "tokens_per_s": tok_s,
             "mfu": mfu,
             "world_size": world,
+            "loader_seed": loader_seed,
             "arm": cfg["arm"],
             "seed": cfg["seed"],
         }
@@ -147,4 +152,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

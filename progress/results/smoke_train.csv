@@ -1,0 +1,4 @@
+name,scope,steps,world_size,nodelist,status,step2_loss,step2_tokens_per_s,notes
+smoke_tiny_1gpu,1xH100,2,1,auto,pass,7.623465061187744,17745.15896808739,local single-GPU training entry smoke
+smoke_tiny_80gpu,80xH100,2,80,"cn03 cn04 cn13 cn14 cn15 cn16 cn25 cn26 cn27 cn34",pass,7.602107524871826,1041305.1680162925,DDP/torchrun smoke only; MFU not meaningful
+

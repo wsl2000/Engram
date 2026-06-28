@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -81,20 +82,25 @@ def main() -> None:
             if shard_count >= args.tokens_per_shard:
                 flush()
 
-    pbar = tqdm(total=args.max_tokens, unit="tok")
+    pbar = tqdm(total=args.max_tokens, unit="tok", disable=not sys.stderr.isatty())
     batch: list[str] = []
-    for row in ds:
-        batch.append(row.get(args.text_field) or "")
-        if len(batch) >= args.batch_docs:
+    try:
+        for row in ds:
+            batch.append(row.get(args.text_field) or "")
+            if len(batch) >= args.batch_docs:
+                encode_texts(batch)
+                batch = []
+            if args.max_tokens is not None and total >= args.max_tokens:
+                break
+        if batch and (args.max_tokens is None or total < args.max_tokens):
             encode_texts(batch)
-            batch = []
-        if args.max_tokens is not None and total >= args.max_tokens:
-            break
-    if batch and (args.max_tokens is None or total < args.max_tokens):
-        encode_texts(batch)
-    flush()
-    manifest["total_tokens"] = total
-    manifest_path.write_text(json.dumps(manifest, indent=2))
+    except BaseException as exc:
+        manifest["error"] = repr(exc)
+        raise
+    finally:
+        flush()
+        manifest["total_tokens"] = total
+        manifest_path.write_text(json.dumps(manifest, indent=2))
 
 
 if __name__ == "__main__":
