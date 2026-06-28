@@ -19,6 +19,19 @@ Commit message format: `progress: H<elapsed>h — <one-line status>`. Author **w
 
 ---
 
+## ⚠️⚠️⚠️ TWO-WAY FEEDBACK — `git pull` EVERY ~2 HOURS, CHECK `feedback/` ⚠️⚠️⚠️
+
+A reviewer is watching your `progress/` and will push review notes into **`feedback/`**. This is a closed loop — pushing is not enough, you must also **listen**.
+
+- **Every ~2h (right after you push progress), `git pull` and check `feedback/` for new files.** Urgent items may arrive between ticks — pull whenever convenient.
+- Reviewer files are named **`feedback/review-<UTC-timestamp>.md`**, each starting with a top line **`VERDICT: ON-TRACK | ISSUES | BLOCKER`**.
+- **On a new feedback file:** read it, **acknowledge in `progress/STATUS.md`** (name the file + what you'll do), and either apply the fix or reply (push `feedback/reply-<UTC>.md`) explaining why not. **Treat `BLOCKER` as stop-and-fix before continuing.**
+- Don't silently ignore feedback; an unacknowledged review file is a process failure.
+
+> **Net loop:** executor pushes `progress/` every 2h → reviewer pulls, pushes `feedback/` if off-track → executor pulls every 2h, acks in `STATUS.md`, fixes. Both sides poll ~every 2h; anything urgent is pushed immediately.
+
+---
+
 ## 0. Objective (read first)
 
 **Goal.** Empirically verify that DeepSeek's **Engram** (conditional memory via O(1) N-gram lookup) is *effective*: under a strict **iso-parameter, iso-FLOPs** comparison, a small MoE that reallocates ~20–25% of its sparse budget to an Engram table **beats** the same model as pure MoE, and the Engram module is **functionally doing the work** (stores knowledge, deepens the net).
