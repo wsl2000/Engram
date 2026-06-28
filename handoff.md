@@ -1,7 +1,21 @@
 # Engram Verification — Handoff (≤80× H100, ≤24h total, preliminary signal ≤12h)
 
 **Audience:** an autonomous engineering agent that implements and runs this end-to-end.
-**Status:** ready to execute. Read §0, then §10 (timeline). Everything needed is here.
+**Status:** ready to execute. Read §0, then §8 (timeline). Everything needed is here.
+
+---
+
+## ⚠️⚠️⚠️ COLLABORATION RULE — PUSH PROGRESS EVERY 2 HOURS ⚠️⚠️⚠️
+
+**Every 2 hours (and at every milestone), commit & push a progress snapshot to this repo (`github.com/wsl2000/Engram`) so collaborators can follow live.** Do not wait for the run to finish.
+
+Each snapshot must include, but is not limited to:
+- **Training logs** (`progress/logs/` — per-step loss/LR/grad-norm/tokens-seen/router-LB/step-time; tail of each run's stdout).
+- **Current results so far** (`progress/results/` — partial `loss_table.csv`, any `knockout.csv`/`slices.csv`/`depth_probe` already computed, `loss_curves.png` updated).
+- **Status line** in `progress/STATUS.md`: wall-clock elapsed, which run/seed/arm is active, step/tokens done vs target, measured MFU & tokens/s, GPU/node health, **what just finished, what's next, and the ETA**.
+- **Any anomaly** (OOM, MFU drop, NaN, knockout-not-collapsing bug signal §10) — flag immediately, don't wait for the 2h tick.
+
+Commit message format: `progress: H<elapsed>h — <one-line status>`. Author **wsl2000 <wsuli615@gmail.com>**. Keep it cheap and frequent; partial/ugly is fine — visibility > polish.
 
 ---
 
