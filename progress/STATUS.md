@@ -1,9 +1,9 @@
-# H1.7 — real shards ready; full-model probes pass
+# H2.1 — 80GPU calibration exposes MFU blocker
 
-- Elapsed: H1.7
-- Active run: setup only; no training launched
-- Step/tokens vs target: 0 / TBD; tokens/run will be set by 200-step calibration
-- Measured MFU and tok/s: real calibration TBD; 80GPU tiny smoke reached 1.04M tok/s on tiny config step 2 (not meaningful for target MFU); 1GPU full-model step probes around 4.3s/microbatch
+- Elapsed: H2.1
+- Active run: calibration stopped after 12 valid A-arm steps; no Engram training run is active
+- Step/tokens vs target: 12 steps / 51,118,080 tokens measured; handoff 70B/run at current throughput would take ~48.26h per run
+- Measured MFU and tok/s: A seed 1337 80GPU full model, steady steps 8-12 averaged 402,919 tok/s, 10.58s/step, MFU 1.45%
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
 - Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands carry explicit `--time/--mem` plus shell `timeout` for probes
@@ -20,5 +20,7 @@
 - Slurm smoke: 1xH100 tiny training passed; 80xH100 tiny DDP passed on clean nodelist after excluding `cn17`
 - Full-model probes: A/B zero-step build pass on 1xH100 with ~74.9GB free after weights; A/B 1-step probes pass with AdamW state allocation; A accidental checkpoint removed (`27GB`)
 - Invariants: active params `475,136,000` both arms; A non-embed `4,505,600,000`; B non-embed `4,505,598,976`; delta `1,024`; Engram sparse budget fraction `22.47%`; tokens/step on 80 GPUs `4,259,840`; 70B max steps `16,432`
-- Next: push H1.7 snapshot, launch 80GPU A-arm calibration on 4.69B-token shard set
-- ETA: preliminary verdict target remains H12 if infra/training gates pass
+- Calibration anomaly: full-model pure-PyTorch MoE uses Python expert dispatch; no Megablocks/Tutel/DeepSpeed/FlashAttention stack is installed. Current throughput is ~20.7x below the handoff planning target (~8.34M tok/s for 70B/run within ~2.33h)
+- Schedule impact: one A/B pair would take ~96.5h, and all six runs would take ~12.1 days at measured speed; H12 preliminary verdict and H24 final report are not reachable without replacing the MoE kernel/stack
+- Next: push H2.1 anomaly immediately, then either install/use a vetted grouped-GEMM MoE path or request operator guidance because continuing the exact 24h plan on this implementation would only burn cluster time
+- ETA: scientific preliminary verdict is blocked by throughput; no knockout/slice verdict has been produced
