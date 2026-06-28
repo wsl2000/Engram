@@ -1,0 +1,70 @@
+{
+  "arm": "A",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 128000,
+    "seq_len": 2048,
+    "n_layers": 20,
+    "d_model": 1280,
+    "n_heads": 16,
+    "expert_hidden": 640,
+    "shared_experts": 1,
+    "routed_experts_a": 88,
+    "routed_experts_b": 68,
+    "top_k": 6,
+    "engram_layers": [
+      2,
+      6
+    ],
+    "engram_orders": [
+      2,
+      3
+    ],
+    "engram_heads": 8,
+    "engram_dim": 256,
+    "engram_conv_kernel": 4
+  },
+  "train": {
+    "precision": "bf16",
+    "optimizer": "adamw",
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.95,
+    "weight_decay": 0.1,
+    "peak_lr": 0.0015,
+    "min_lr_ratio": 0.1,
+    "warmup_frac": 0.02,
+    "grad_clip": 1.0,
+    "router_aux_loss_coef": 0.01,
+    "micro_batch_size": 1,
+    "grad_accum_steps_80gpu": 26,
+    "target_tokens_per_run": 70000000000,
+    "checkpoint_minutes": 25,
+    "val_interval_steps": 500,
+    "max_steps": 16432,
+    "tokens_per_step_80gpu": 4259840
+  },
+  "derived": {
+    "expert_params": 2457600,
+    "attention_params_per_layer": 6553600,
+    "active_params": 475136000,
+    "engram_rows_per_head_order_site": 119918,
+    "engram_params": 983038976,
+    "freed_routed_expert_params": 983040000,
+    "sparse_budget_to_engram_frac": 0.2247188670411985,
+    "arm_a_non_embedding_params": 4505600000,
+    "arm_b_non_embedding_params": 4505598976,
+    "iso_param_abs_delta": 1024,
+    "iso_active_param_abs_delta": 0,
+    "tokens_per_step_80gpu": 4259840,
+    "max_steps_70b_80gpu": 16432
+  },
+  "routed_experts": 88,
+  "engram_enabled": false,
+  "engram_rows": 119918,
+  "knockout_default": false,
+  "notes": [
+    "24h handoff plan: DDP full expert replication; no expert parallelism.",
+    "Optimizer fixed to AdamW unless Muon is separately vetted before launch.",
+    "Engram layers are zero-based module indices 2 and 6."
+  ]
+}

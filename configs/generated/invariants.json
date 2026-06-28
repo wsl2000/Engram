@@ -1,0 +1,15 @@
+{
+  "expert_params": 2457600,
+  "attention_params_per_layer": 6553600,
+  "active_params": 475136000,
+  "engram_rows_per_head_order_site": 119918,
+  "engram_params": 983038976,
+  "freed_routed_expert_params": 983040000,
+  "sparse_budget_to_engram_frac": 0.2247188670411985,
+  "arm_a_non_embedding_params": 4505600000,
+  "arm_b_non_embedding_params": 4505598976,
+  "iso_param_abs_delta": 1024,
+  "iso_active_param_abs_delta": 0,
+  "tokens_per_step_80gpu": 4259840,
+  "max_steps_70b_80gpu": 16432
+}

@@ -1,0 +1,14 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+
+data/
+checkpoints/
+runs/
+outputs/
+wandb/
+*.pt
+*.bin
+*.npy
+*.npz
+
