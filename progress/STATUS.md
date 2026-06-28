@@ -1,6 +1,6 @@
-# H0.5 — implementation scaffold and local gates pass
+# H0.8 — tokenization smoke fixed; ready to launch CPU tokenize job
 
-- Elapsed: H0.5
+- Elapsed: H0.8
 - Active run: setup only; no training launched
 - Step/tokens vs target: 0 / TBD; tokens/run will be set by 200-step calibration
 - Measured MFU and tok/s: TBD after calibration
@@ -14,6 +14,9 @@
 - Judgment call: Muon modules not installed/vetted; fixed optimizer to AdamW for all runs
 - Implementation: added pure PyTorch DDP scaffold, MoE full replication, EngramRead, tokenizer script, training entry, Slurm calibration script
 - Local gates: `pytest -q` passed 8/8; `py_compile` passed; synthetic paired-loader first 100 batches hash matched exactly
+- Tokenization: DeepSeek-V3 tokenizer + FineWeb-Edu `sample-350BT` smoke succeeded; real smoke paired-loader hash matched; tokenization script now batches docs and writes per-worker manifests
+- Tokenization anomaly/fix: initial multi-worker smoke showed manifest overwrite and one transient HF listing delay; fixed manifests to `manifest_w*.json`, added `scripts/list_token_shards.py`, and rechecked worker 1 successfully under 180s
+- Slurm tokenize script: fixed to call `srun` inside `sbatch --wrap`; `sbatch --test-only` passed for 10 nodes / 80 tasks / 4 CPU per task / 4G per CPU
 - Invariants: active params `475,136,000` both arms; A non-embed `4,505,600,000`; B non-embed `4,505,598,976`; delta `1,024`; Engram sparse budget fraction `22.47%`; tokens/step on 80 GPUs `4,259,840`; 70B max steps `16,432`
-- Next: push implementation snapshot, then prepare real tokenizer/data shard and bounded Slurm smoke/calibration
+- Next: push tokenization fix, launch CPU tokenization, then prepare bounded Slurm model smoke/calibration
 - ETA: preliminary verdict target remains H12 if infra/training gates pass

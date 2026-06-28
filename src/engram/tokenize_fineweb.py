@@ -20,7 +20,12 @@ def main() -> None:
     parser.add_argument("--tokens-per-shard", type=int, default=1_000_000_000)
     parser.add_argument("--max-tokens", type=int)
     parser.add_argument("--text-field", default="text")
+    parser.add_argument("--batch-docs", type=int, default=256)
+    parser.add_argument("--num-workers", type=int, default=1)
+    parser.add_argument("--worker-index", type=int, default=0)
     args = parser.parse_args()
+    if not 0 <= args.worker_index < args.num_workers:
+        raise ValueError("worker-index must be in [0, num-workers)")
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -29,6 +34,8 @@ def main() -> None:
     if eos_id is None:
         eos_id = tokenizer.convert_tokens_to_ids(tokenizer.eos_token or "<｜end▁of▁sentence｜>")
     ds = load_dataset(args.dataset, name=args.subset, split=args.split, streaming=True)
+    if args.num_workers > 1:
+        ds = ds.shard(num_shards=args.num_workers, index=args.worker_index)
 
     shard_idx = 0
     shard_tokens: list[np.ndarray] = []
@@ -42,39 +49,53 @@ def main() -> None:
         "dtype": "uint32",
         "shards": [],
     }
+    manifest_path = out_dir / f"manifest_w{args.worker_index:03d}.json"
 
     def flush() -> None:
         nonlocal shard_idx, shard_tokens, shard_count
         if shard_count == 0:
             return
-        path = out_dir / f"{args.split}_{shard_idx:05d}.bin"
+        path = out_dir / f"{args.split}_w{args.worker_index:03d}_{shard_idx:05d}.bin"
         np.concatenate(shard_tokens).astype(np.uint32).tofile(path)
         manifest["shards"].append({"path": str(path), "tokens": shard_count})
         shard_idx += 1
         shard_tokens = []
         shard_count = 0
-        (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+
+    manifest["num_workers"] = args.num_workers
+    manifest["worker_index"] = args.worker_index
+    manifest["batch_docs"] = args.batch_docs
+
+    def encode_texts(texts: list[str]) -> None:
+        nonlocal shard_count, total
+        encoded = tokenizer(texts, add_special_tokens=False)["input_ids"]
+        for ids in encoded:
+            if eos_id is not None:
+                ids.append(int(eos_id))
+            arr = np.asarray(ids, dtype=np.uint32)
+            shard_tokens.append(arr)
+            shard_count += int(arr.shape[0])
+            total += int(arr.shape[0])
+            pbar.update(int(arr.shape[0]))
+            if shard_count >= args.tokens_per_shard:
+                flush()
 
     pbar = tqdm(total=args.max_tokens, unit="tok")
+    batch: list[str] = []
     for row in ds:
-        text = row.get(args.text_field) or ""
-        ids = tokenizer.encode(text, add_special_tokens=False)
-        if eos_id is not None:
-            ids.append(int(eos_id))
-        arr = np.asarray(ids, dtype=np.uint32)
-        shard_tokens.append(arr)
-        shard_count += int(arr.shape[0])
-        total += int(arr.shape[0])
-        pbar.update(int(arr.shape[0]))
-        if shard_count >= args.tokens_per_shard:
-            flush()
+        batch.append(row.get(args.text_field) or "")
+        if len(batch) >= args.batch_docs:
+            encode_texts(batch)
+            batch = []
         if args.max_tokens is not None and total >= args.max_tokens:
             break
+    if batch and (args.max_tokens is None or total < args.max_tokens):
+        encode_texts(batch)
     flush()
     manifest["total_tokens"] = total
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    manifest_path.write_text(json.dumps(manifest, indent=2))
 
 
 if __name__ == "__main__":
     main()
-
