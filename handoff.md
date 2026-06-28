@@ -1,167 +1,211 @@
-# Engram Reproduction & Verification — Handoff
+# Engram Verification — Handoff (≤80× H100, ≤24h total, preliminary signal ≤12h)
 
-**Target paper:** DeepSeek, *"Conditional Memory via Scalable Lookup: A New Axis of Sparsity for LLMs"* (Engram), arXiv:2601.07372.
-**Audience:** a team with a multi-node H100 cluster (≤80× H100-80GB) whose single job is to **reproduce / verify Engram itself**.
-**Reproduction target:** the **flat n-gram conditional-memory** value on an **MoE backbone** — the U-shape sparsity-allocation law and the downstream / knockout gains. The structured / VSA ("binding") value extension is **out of scope** (§7).
-
-> This doc was assembled by an upstream team that ran small-scale precursors (and hit the off-regime traps in §6). Every paper number below was transcribed from arXiv:2601.07372 Table 1/2 + the official repo; where the paper does **not** state something it is marked **[ASSUMPTION]** — verify against the paper's Appendix A before committing compute.
+**Audience:** an autonomous engineering agent that implements and runs this end-to-end.
+**Status:** ready to execute. Read §0, then §10 (timeline). Everything needed is here.
 
 ---
 
-## 1. Goal and definition of "reproduced"
+## 0. Objective (read first)
 
-**What Engram claims.** Add a second axis of sparsity to an MoE LLM: a huge, sparsely-accessed **n-gram → value lookup table** (conditional memory) storing parametric knowledge. At iso-activated-params and iso-FLOP it **barely moves pretraining loss** but materially improves **downstream knowledge / reasoning / long-context** benchmarks, and the knowledge provably lives *in the table* (a knockout test collapses factual recall).
+**Goal.** Empirically verify that DeepSeek's **Engram** (conditional memory via O(1) N-gram lookup) is *effective*: under a strict **iso-parameter, iso-FLOPs** comparison, a small MoE that reallocates ~20–25% of its sparse budget to an Engram table **beats** the same model as pure MoE, and the Engram module is **functionally doing the work** (stores knowledge, deepens the net).
 
-**Success criteria, ordered cheapest / most-diagnostic first.** A reproduction succeeds if it hits these:
+**Why this fits 24h.** The decisive signals — **knockout** (disable Engram in-model) and **targeted-slice loss** — are *within-model / paired* and **immune to cross-run seed noise**, so they need only **one (MoE, Engram) pair**, not a seed sweep. We front-load that pair and evaluate it early ⇒ **preliminary verdict by ~H11**. The (underpowered) global-loss comparison is corroboration only and gets the back half of the budget.
 
-| Pri | Criterion | Grounded target |
+**Non-goals:** no U-shape *curve* (single ρ in the sweet spot); no 27B headline; no matching the paper's *absolute* loss (different corpus — only the **relative** A-vs-B claim is made).
+
+**Success (one sentence):** Engram-knockout causes a large clean collapse on factual tasks **and** targeted-slice loss is clearly better for the Engram arm; the paired global-loss gap corroborates as a secondary signal.
+
+**Scale rationale:** ~**0.48B activated** matches the paper's small-scale regime (§3.1 used 568M/993M activated) — where the effect was *actually measured*, not a toy.
+
+---
+
+## 1. Constraints & run budget
+
+| Item | Value |
+|---|---|
+| Hardware | **80× H100-80GB SXM**, multi-node. |
+| Wall-clock | **≤24h total.** Preliminary (knockout+slices on pair 1) **≤12h**. |
+| Runs | **6** = 2 arms × 3 seeds, **front-loaded** (pair 1 first). If MFU/time slips, 2 seeds is an acceptable fallback (seeds only feed the *secondary* loss criterion). |
+| Arms | (A) pure MoE `ρ=100%`; (B) Engram `ρ≈77%` (~23% of routed budget → Engram). |
+| Seeds | `{1337, 2024, 7}` (pair 1 = 1337). |
+| Tokens/run | **~70B** (calibrate to 60–80B in §9). *Reduced from a 48h plan's 120B to fit 24h; trade-off is a slightly weaker loss signal only — knockout/slices are unaffected, and ~70B still fills the ~3.8M-slot Zipf tail adequately.* |
+
+> **The 12h preliminary does not depend on seeds.** It rests on knockout + slices from pair 1 (noise-immune). Seeds are phase 2, for the loss corroboration only.
+
+---
+
+## 2. Experimental design (the invariants that make this valid)
+
+1. **Iso-parameter:** identical total non-embedding params; Engram table params exactly replace removed routed-expert params (§5).
+2. **Iso-FLOPs:** `top_k = 6` in both arms ⇒ identical activated params ⇒ identical FLOPs/token; Engram lookup adds negligible FLOPs.
+3. **Paired data:** within a seed, arms A and B consume **the exact same token stream, batch-by-batch, same order** (§7.3) — cancels the dominant noise source.
+4. **Everything else identical across all runs:** backbone, optimizer, LR schedule, batch, steps, tokenizer, LB loss, precision.
+5. **The only variable is the arm** (88 experts ↔ 68 experts + Engram table).
+
+---
+
+## 3. Model configuration (shared backbone)
+
+| Component | Setting |
+|---|---|
+| Layers | 20 · `d_model` 1280 · **MHA** 16 heads (head_dim 80), FlashAttention-3, RoPE θ=10000 |
+| `seq_len` | 2048 |
+| Tokenizer | **DeepSeek-V3, 128k vocab** (public in `deepseek-ai/DeepSeek-V3`) |
+| FFN | SwiGLU MoE, expert hidden `h_e` 640, **1 shared** + **88 routed (A) / 68 routed (B)**, router top-`k`=**6**, aux LB-loss 0.01 (identical) |
+| Embeddings | tied in/out (`128k·1280 ≈ 164M`) |
+| Precision | **bf16** (not FP8 — comparability > the ~1.5× speedup; avoids scaling-factor confounds) |
+| Optimizer | **Muon** (peak LR 3e-3) — **fallback AdamW** (β 0.9/0.95, wd 0.1, peak LR 1.5e-3) if Muon integration is risky; **identical across all runs**. *(Muon is custom infra; if not already vetted, use AdamW and note the deviation — do not let optimizer choice differ between arms.)* |
+| LR sched | cosine → 10% peak, warmup 2% of steps · grad clip 1.0 |
+| Global batch | **~4M tokens** (2048 × 2048 seqs; grad-accum to reach it) · init std 0.02, scaled-residual |
+
+**Param accounting (assert in `config_gen.py`):** attn per layer `4·d_model²=6.55M` ×20 = 131.1M (active). Expert `3·d_model·h_e=2.458M`.
+- **A (ρ=100%):** FFN `(1+88)·2.458M·20=4.374B`; non-embed ≈ **4.50B**; activated `131.1M+(1+6)·2.458M·20 ≈ 0.475B`. ✅
+- **B (ρ≈77%):** drop 88→68 routed ⇒ freed `20·2.458M·20=0.983B`; routed FFN `(1+68)·2.458M·20=3.391B` + Engram **≈0.983B** ⇒ non-embed ≈ **4.50B** ✅ (iso-param); activated **0.475B** ✅ (iso-FLOPs, top_k still 6). **% routed budget → Engram = 0.983/4.374 ≈ 22.5%** (ρ≈77.5%, in the 20–25% sweet spot).
+
+> **No expert-parallel divisibility constraint** here — we replicate experts (no EP, §8), so 88/68 are fine.
+
+---
+
+## 4. Engram module (§5 of source plan, unchanged)
+
+Insert at **layers 2 and 6**; split the ~0.983B budget evenly (~0.49B/site).
+**Per site:** N-gram orders `N={2,3}` (causal suffix), hash heads `H=8`, dim per n-gram `d_e=256`, causal conv kernel 4 + SiLU, context-aware gate. Tokenizer-compression **skipped in v0** (optional later).
+**Table rows:** tables dominate `2·8·M·256 = 4096·M ≈ 0.49e9` ⇒ **M ≈ 119,600 rows/head/order**; ~1.91M slots/site, ~3.8M total (within the paper's 2.6e5–1e7 range). `proj` (256→1280 ≈0.33M) + gate negligible.
+
+**Forward (key points):** deterministic `poly_hash(token_ids, n, salt=h) % M` per head → gather `nn.Embedding(M,d_e)` (16 tables/site) → mean over heads → sum over orders → `proj` → context gate `α=sigmoid(RMSNorm(h)·RMSNorm(e)/√d)` → `SiLU(causal_conv1d(e))` → `hidden + α·e`. **`knockout=True` must cleanly return `hidden` unchanged** (eval-time only). Hashing must be vectorized (precompute indices on host if it bottlenecks throughput).
+
+---
+
+## 5. Datasets
+
+**Training:** `HuggingFaceFW/fineweb-edu`, subset **`sample-350BT`** — public, clean, knowledge-dense. Tokenize once (DeepSeek-V3 128k) → **mmap shards** packed to 2048 with doc separators. **Stream tokenization from H0, overlapped with training; it only needs to stay ahead of consumption** (80 nodes of CPU keep up easily at 8.3M tok/s). Prefer distinct shards per seed; 350BT ≫ 3×70B so reuse is fine.
+*Why not the paper's data: DeepSeek's 262B corpus is undisclosed ⇒ we cannot match absolute loss; our claim is **relative** (A vs B on identical data), unaffected.*
+
+**Eval (these may reference the paper; NEVER train on them):**
+| Tier | Sets | Purpose |
 |---|---|---|
-| **1. U-shape allocation law** (cheapest; architecture validation) | Sweep Engram's share of the **sparse** budget; optimum at **20–25% Engram / 75–80% MoE**; pure-MoE strictly worse; curve turns up by ρ≈0.5. | The **portable target is the *shape* + the Δ at the optimum ≈ −0.014** val loss vs pure-MoE in the small/in-regime sweep. (Paper's sweep-point absolutes 1.7248→1.7109 are **token-budget-specific**, not a number to hit.) |
-| **2. Loss deltas** (iso-param, iso-FLOP, 262B tok) | Both in-distribution **and** held-out gaps are *small* — this is expected, not a failure. | val loss **1.634 → 1.622 (Δ −0.012)**; held-out **Pile 1.960 → 1.950 (Δ −0.010)**. Engram-40B reaches 1.610. **Both gaps are ~0.01.** (The often-quoted 2.091 Pile number is **Dense-4B**, NOT the iso MoE-27B baseline — do not use it.) |
-| **3. Downstream deltas** (Engram-27B vs iso MoE-27B; Table 1, exact) | Reasoning + long-context are the load-bearing, hardest-from-noise gains. | BBH **50.9→55.9 (+5.0)**, CMMLU **57.9→61.9 (+4.0)**, ARC-C **70.1→73.8 (+3.7)**, MMLU **57.4→60.4 (+3.0)**, HumanEval **37.8→40.8 (+3.0)**, MATH **28.3→30.7 (+2.4)**, GSM8K **58.4→60.6 (+2.2)**, TriviaQA **48.8→50.7 (+1.9)**. **Long-context (RULER 32k, after YaRN stage §3.4):** NIAH Multi-Query **84.2→97.0 (+12.8)**, Variable Tracking **77.0→89.0 (+12.0)**. |
-| **4. Knockout** (decisive mechanistic verifier) | Disable the Engram read at inference: factual recall must collapse, reading-comprehension must survive. | **Retention ratios** (proxy-robust): TriviaQA retention **≈29%**, factual tasks **29–44%**, RC tasks **81–93%**. (e.g. TriviaQA EM ≈ 50.7 × 0.29 ≈ **14.7** — that absolute is *derived*, gate on the ratio.) If knowledge does **not** collapse → the table isn't storing knowledge → **reproduction FAILED regardless of loss.** |
+| Primary loss | **The Pile** test (held out — we train only on FineWeb-Edu, so no contamination) + **FineWeb-Edu held-out val** | the loss axis |
+| **Knockout (primary verdict)** | **TriviaQA** (5-shot EM), **PopQA** | Engram on/off collapse |
+| **Targeted slices (primary)** | held-out FineWeb-Edu filtered to (a) repeated-2/3-gram continuations, (b) named-entity tokens | concentrate the effect |
+| Depth probe | small held-out set | LogitLens / early-exit per layer |
+| Downstream (secondary, noisy @0.5B) | MMLU/CMMLU/ARC/HellaSwag/PIQA/WinoGrande/BBH(subset)/GSM8K via `lm-eval-harness` | report, do not gate |
+| Long-context (optional) | **RULER** (Multi-Query NIAH, Variable Tracking) **at 32k** | the 84.2→97 showcase, if time |
 
-**The loss axis is weak by design.** The pretraining-loss/BPB gain is ~0.01–0.014 even at 27B; **a near-null BPB neither confirms nor refutes anything.** Do **not** optimize or adjudicate on BPB alone — the durable verdict is **downstream + knockout**.
-
----
-
-## 2. The Engram module (implement faithfully)
-
-Per token, hash the local n-gram context into several large embedding tables, gather + mix the retrieved values, gate them, add to the residual. Tables are sparsely accessed (`K × #orders` rows/token) and can live in host DRAM.
-
-- **N-gram orders:** bigram + trigram (max n = 3).
-- **Hash heads:** **K = 8** per order, each into a **prime-sized** table (distinct primes per head to decorrelate collisions); multiplicative-XOR hash.
-- **Value dim:** `d_mem` = **[ASSUMPTION ≈1280; verify Appendix A]**.
-- **Per-token gate:** `α = sigmoid( RMSNorm(h)·RMSNorm(k) / sqrt(d) )` (scalar, from hidden `h` and retrieved `k`).
-- **Depthwise CAUSAL conv:** kernel **w=4**, dilation = max n-gram order, **SiLU**. (Must be causal — no future leakage.)
-- **Flow:** `K=8 EmbeddingBag gathers per order → concat → depthwise causal conv(w=4, SiLU) → proj → d_model → scalar gate α → residual add`.
-- **Inject layers:** **[2, 15] of 30**.
-- **Table optimizer:** Engram embeddings in their **own param group**, **weight-decay 0**, LR **[ASSUMPTION ×5 backbone base LR; verify]**; tables **CPU-resident** (pinned host DRAM, async H2D), **excluded from the GPU distributed optimizer**.
-
-**Official code (and its limit):** `github.com/deepseek-ai/Engram` ships only `engram_demo_v1.py` — a data-flow demo with **MOCKED** Attention/MoE/conv, **no training configs / weights / eval harness**. Use it to confirm tensor shapes only; **budget a full re-implementation.**
+**Paired loader (non-negotiable):** identical token batches for both arms at a given seed (same shard order, packing, shuffle); arm must not influence the pipeline. **Verify by hashing the first 100 batches of an A-run and B-run at the same seed — must be bitwise identical.**
 
 ---
 
-## 3. Compute plan on ≤80× H100 (80GB)
+## 6. Training infrastructure
 
-### 3.1 Stack
-**Megatron-Core MoE + Transformer-Engine FP8** (the mature H100 stack with grouped-GEMM experts, EP/TP/PP, DeepSeek-style aux-loss-free balancing, distributed optimizer, and a per-layer `ModuleSpec` hook). NeMo wraps the same core; MaxText/OLMoE not recommended as the engine.
+- **DDP with full expert replication. NO Expert Parallelism.** 4.5B non-embed + 0.16B embed bf16 ≈ 9.3GB weights + Muon/Adam states ≈ ~45GB ⇒ fits one 80GB H100. Replicate the whole model per GPU ⇒ **no all-to-all** (the #1 cause of MoE MFU collapse at small scale). Engram tables (~2GB bf16) **on-GPU, replicated; no DRAM offload** (that's a 100B-table inference trick, irrelevant here).
+- Activation checkpointing if needed to fit the micro-batch at seq 2048.
+- **Target MFU 28–32% (plan 30%).** Checkpoint every **20–30 min** + end of each run.
+- **Determinism:** seed torch/cuda/numpy from the run seed; the **paired loader** (not bitwise GPU determinism) is what guarantees the comparison.
+- **Logging:** per-step train loss, LR, grad-norm, tokens-seen, router LB stats, step-time; periodic val loss.
 
-**Insert Engram via the per-layer spec:** give layers **2 and 15** a custom `ModuleSpec` whose `TransformerLayerSubmodules` append an `EngramRead` (the §2 module, host-DRAM EmbeddingBag) after the MLP. Megatron's forward carries `hidden_states`, not `input_ids`, so **compute the bi/tri-gram hash-ids once at the embedding step and pass them as an explicit extra forward arg threaded to layers [2,15]** (passing as a forward arg — not stashing on the module — survives activation-recompute cleanly; add a Step-0 test with recompute ON).
-
-**Optimizer:** use Megatron **distributed-Adam** for the backbone (turnkey). *The paper reports Muon for the backbone; Muon on Megatron is a non-trivial custom dependency (sharded Newton-Schulz must coexist with EP/TP + the separate Adam group for CPU tables). Treat backbone-Adam as an explicit, documented deviation, or budget Muon as custom infra + Step-0 tests.* **[ASSUMPTION/deviation — state your choice.]**
-
-### 3.2 Hard constraints / gotchas (do not skip)
-- **EP divisibility (launch blocker):** Megatron asserts `num_routed_experts % EP == 0`. With **EP=8**, routed-expert counts **must be multiples of 8** → use **104 or 112** (sweep model) and **56 (Engram-27B) / 72 (iso MoE-27B)**. Do **not** drop EP to a non-8 divisor (breaks the single-node-NVLink all-to-all plan).
-- **MoE MFU:** fine-grained MoE spends **<50% of time in GEMMs** → **budget 30–40% BF16 MFU**, not 50%.
-- **FP8 reality:** FP8 only speeds the GEMM fraction; end-to-end ≈ **1.15–1.3×**, *not* the 2× peak, and FP8 grouped-GEMM over many small fine-grained experts can give **<1.15× (occasionally none)**. **Validate the FP8 grouped-GEMM speedup empirically in Step 1 before trusting the sweep schedule; if <1.15×, fall back to BF16 and re-budget.** All FP8 wall-clocks below are padded ~20%.
-- **Balancing:** `--moe-router-enable-expert-bias --moe-router-bias-update-rate 1e-3 --moe-router-dtype fp32`, grouped-GEMM on.
-- **Keep PP=1** so the [2,15] Engram layers + hash-id side-tensor stay on every rank.
-- **Tables CPU-resident & out of the GPU optimizer.** The paper's ~2.8% offload penalty is *their optimized overlapped impl*; a from-scratch CPU-EmbeddingBag + async H2D + CPU-Adam path is the **main perf risk** — **micro-benchmark the overlapped H2D/D2H path in Step 0 and gate the schedule on a measured penalty (<~10%)**.
-
-### 3.3 Config math
-Train FLOPs ≈ `6 · N_active · D_tokens` (**iso-FLOP only to within this approximation**; the Engram conv + `d_mem→d_model` proj add a small, uncounted overhead — account for it when sizing the MoE arm if you want strict parity). H100 SXM peak 989.5 TF BF16; **40% MFU ⇒ ~396 TF/GPU BF16; realistic FP8 ⇒ ~1.2× ≈ ~475 TF/GPU.**
-
-**Sweep model (paper's smallest in-regime point — do not go smaller; below ~568M-active the effect is noise):** **568M activated / ~5.7B total**, **104 or 112 routed + 2 shared experts** (DeepSeekMoE fine-grained, sparsity ~10×), DeepSeek-V3 128k tokenizer, seq 4096.
-**[ASSUMPTION — the paper does NOT publish the sweep model's layers / d_model / shared-routed split (only Pact=568M, Ptot≈5.7B, fine-grained experts).** Do not assume it reuses the 27B's 30L/d2560 geometry — that is internally inconsistent (more experts at the same geometry ⇒ more total params, not ~5× fewer). **Choose layers / d_model / per-expert FFN width so that 568M active + your routed count reconciles to ~5.7B total, and record the choice.**]
-
-### 3.4 The three compute stages (in order)
-
-**Config A — POSITIVE CONTROL / sensitivity (run FIRST; gates everything).**
-- Sweep model; **60B tokens**; arms = Engram-frac **{0 (pure MoE), 0.25 (flat)} × ≥5 paired seeds** (see §3.5 — 2 seeds is underpowered).
-- Layout/run: 1 node (8×H100), **EP=8, TP=1, PP=1**, FP8.
-- ~**16–18h FP8 / ~22h BF16** per run; 10 runs (5 seeds × 2 arms) on 5 nodes (40 H100) ≈ **<1 day**.
-
-**Config B — RECOMMENDED in-regime U-shape sweep.**
-- Sweep model; **100B tokens** (or 60B for speed/margin).
-- Sweep Engram-frac **{0, 0.1, 0.2, 0.25, 0.4, 0.5}** (brackets the 0.2–0.25 optimum + confirms the up-turn) **× 2 paired seeds = 12 runs** (carry seeds from Config A where possible).
-- Layout/run: 1 node = 8×H100: **EP=8, TP=1, PP=1, attention-DP=8**, grouped-GEMM, NVLink all-to-all, FP8, distributed optimizer; tables on host DRAM.
-  - **Memory must be sized, not asserted:** with global batch ~1280 seqs over DP=8 ⇒ ~160 seqs/rank/step ⇒ **mbs 1–2 + grad-accum ~80–160**, **selective/full activation recompute**, and **fused/chunked cross-entropy** for the 128k head (the logit spike OOMs otherwise). Confirm <80GB/GPU before launching.
-- ~**1.2–1.3 days/run (100B FP8)** / ~14–16h (60B FP8).
-- **Parallelize:** 80 H100 = 10 nodes ⇒ run **10 concurrent, hold 2 nodes** for reruns ⇒ the 12-run sweep ≈ **~1.5–2 days** (one wave + a short second wave). Job array, 1 run/node.
-
-**Config C — Main 27B (only after A+B pass; needed for criteria 2/3/4).**
-- **Engram-27B** = 3.8B activated / ~26.7B total (**56 routed + shared experts** + ~5.7B table); **iso MoE-27B** = 3.8B activated, **72 routed experts** **[verify 72 vs Appendix A]**; strictly iso-activated-param + iso-FLOP (within §3.3 caveat), paired seeds, **262B tokens**.
-- **Layout (must be specified, not skipped):** **EP=8 intra-node (NVLink) × DP=10 inter-node × PP=1**, **TP=1 or 2**, distributed optimizer. GPU-resident backbone ≈ **26.7B − 5.7B(CPU table) ≈ 21B** params + Adam/FP32 master sharded over DP; **verify per-GPU < 80GB** (replicated attention/embeddings/shared-experts at TP=1 + sharded routed experts + optimizer states); raise TP to 2 if tight. Set mbs/grad-accum to hit the 27B global batch.
-- **Cost (corrected):** `6 · 3.8e9 · 2.62e11 = 5.97e21 FLOP` ≈ **~17.5× one 100B sweep run** (not "100×"). At ~475 TF/GPU FP8 × 80 GPU ⇒ **~1.7 days/run** (~3 days BF16@30%). **Both arms + ≥2 seeds + the YaRN stage + eval ≈ ~1 week wall** (not "multi-weeks"). *Note: the full Config-B sweep (~3.4e21 FLOP) is ~57% of one 27B run — the sweep's advantage is **wall-clock parallelism + go/no-go value**, not raw FLOP.*
-
-**Long-context extension (REQUIRED for the NIAH/VT criteria; do not skip).** The paper extends context with **YaRN to 32768** for **~5000 steps / ~30B high-quality long-context tokens** *after* the 262B pretrain. Add this as an explicit stage on both 27B arms (small vs the main run) before any long-context eval. **Eval RULER at 32k** (the paper's NIAH +12.8 / VT +12.0 are 32k numbers — not 50k).
-
-### 3.5 Sensitivity gate — calibrated correctly (critical)
-**Do NOT gate on a fixed loss delta** (the paper's *largest* loss effect is 0.0139 and the 27B in-dist gap is 0.012 — both **below** a single-run paired-seed noise floor of ~0.015; a 2-seed magnitude gate would reject a *faithful* reproduction). Instead:
-- **Drive the noise floor below the effect with seeds:** the SE of the mean falls ~1/√n ⇒ budget **~5–8 paired seeds** for Config A; estimate the floor empirically from the **ρ=0 (pure-MoE) paired-seed spread**.
-- **Gate on the *mean* Δ with a CI that excludes 0**, OR (preferred) make the positive control the **U-shape *shape*** (optimum reliably below ρ=1 across paired seeds + up-turn by ρ≈0.5), not any single magnitude.
-- If the shape/CI is inconclusive at this scale: **record "below sensitivity; no verdict"**, add tokens/seeds, and **do not** proceed to Config C.
+**Throughput / token math (confirm in §9):**
+```
+FLOP/token = 6·N_active = 6·0.475e9 ≈ 2.85e9
+80 GPU · 990 TFLOP/s · 0.30 MFU / 2.85e9 ≈ 8.34e6 tokens/s
+per-run @70B = 70e9/8.34e6 ≈ 8,400 s ≈ 2.33h   (60B≈2.0h, 80B≈2.67h)
+6 runs ≈ 14h training ; + ~2h setup + ~5h eval (some overlapped) + buffer  ⇒  ≈22–23h ≤ 24h ✅
+steps/run @70B, 4M global batch = 70e9/4e6 ≈ 17,500 steps
+MFU sensitivity: 24% ⇒ ~17h train (still fits) ; 35% ⇒ ~12h train (more buffer)
+```
+**Scheduling:** runs **sequential, each on all 80 GPUs** (identical world size ⇒ maximal comparability). Never mix world sizes across runs. Total FLOPs are fixed ⇒ all-80-on-one-run-at-a-time is already optimal makespan.
 
 ---
 
-## 4. Datasets
+## 7. Throughput calibration (BEFORE committing token counts)
 
-DeepSeek's corpus is private; use knowledge-rich public proxies carrying a real long-tail (Engram's benefit is the **rare-n-gram tail**, which exists only at ~100B-token scale).
-
-**Training (target ~100–262B tok):**
-- **Recommended:** **FineWeb-Edu** (`HuggingFaceFW/fineweb-edu`, `sample-350BT`) as the primary knowledge-dense source + **DCLM-baseline** (`mlfoundations/dclm-baseline-1.0`) for breadth (MMLU/BBH).
-- **Single drop-in:** `cerebras/SlimPajama-627B` (cleaned/deduped), stream ~200B.
-- **Avoid** raw RedPajama-v2 unless you run the full filter/dedup.
-- **⚠ Hold the eval probe OUT of training:** **do NOT** train on The Pile if you use Pile loss as the held-out probe (contaminates it). If you want a Pile probe, use a split provably disjoint from training and **decontaminate (n-gram overlap filter)**; document the procedure.
-
-**Tokenizer.** **DeepSeek-V3 tokenizer** (public in `deepseek-ai/DeepSeek-V3`, `tokenizer.json`, ~128k BPE) for the exact regime; proxies: Llama-3 (128k, gated) or GPT-NeoX-20B (~50k, license-free). **BPB = bits_per_token / bytes_per_token**, bytes/token measured on **your own held-out split**.
-
-**Eval (EleutherAI lm-evaluation-harness, `pip install lm-eval`):**
-- Turnkey: `lm_eval --tasks mmlu,bbh,triviaqa,nq_open,lambada_openai,ruler`.
-- **NIAH = the RULER group** (`niah_*`, variable-tracking, etc.); **set RULER length to 32k** to match the paper.
-- **BBH:** pick one variant (`bbh_cot_fewshot` recommended) and keep it fixed across arms.
-- **Long-tail factual:** add **PopQA** (`akariasai/PopQA`, ~14k long-tail entity Qs) via a small custom YAML (`--include_path`); optionally LAMA cloze.
-- **RC for the knockout-survival check:** use an RC task that **is in the suite** (e.g. `race`, or an MMLU humanities subset) for the 81–93% retention band — **do not** rely on `C3` unless you add it (it is not in the default suite).
-- **MMLU note:** abstract says +3.4, Table 1 says **57.4→60.4 (+3.0)** — use Table 1.
+1. Build arm A; run **200 steps** on all 80 GPUs at the intended global batch. Measure tokens/s + MFU.
+2. Back-fill **tokens/run** to fit §6 with 20% margin (target ~70B; 60–80B all fit 24h). `max_steps = tokens_per_run / 4e6`.
+3. Confirm arm B throughput within a few % of A (vectorized Engram gather/hash).
+4. Only then launch.
 
 ---
 
-## 5. Step-by-step protocol (each step has a pass/fail gate)
+## 8. 24-hour timeline (start here)
 
-0. **Build & unit-test `EngramRead` (1 node).** Causal conv has no future leakage; K=8 distinct primes; scalar gate; tables on pinned CPU + async H2D, excluded from GPU optimizer; separate param group (wd 0); hash-id side-tensor reaches [2,15] **and survives activation-recompute**; micro-benchmark the offload penalty (<~10%); validate FP8 grouped-GEMM speedup (≥1.15× or fall back to BF16). *Pass:* numerics finite, shapes match the demo, offload + FP8 within budget.
-1. **Sensitivity gate (Config A).** *Pass:* U-shape shape / mean-Δ CI per §3.5. *Fail:* "below sensitivity, no verdict" → add tokens/seeds, **stop**.
-2. **U-shape sweep (Config B).** Plot val loss vs ρ. *Pass:* optimum at 20–25% Engram, pure-MoE worse, up-turn by ρ≈0.5, Δ≈−0.014 at optimum.
-3. **Main 27B pretrain (Config C) + iso baseline.** *Pass:* val ~1.634→1.622 **and** held-out Pile ~1.960→1.950 — **both ~0.01** (small is expected; the *baseline pairing* must be the iso MoE-27B, not Dense-4B).
-4. **YaRN long-context extension (32k)** on both arms.
-5. **Downstream eval** (lm-eval + PopQA + 32k RULER). *Pass:* §1 pri-3 deltas within noise; **BBH (+5.0) and NIAH Multi-Query (+12.8) are load-bearing.**
-6. **Knockout.** Disable the Engram read; re-eval. *Pass:* retention ratios in §1 pri-4 (factual collapses, RC survives). *Fail:* knowledge doesn't collapse ⇒ **reproduction failed.**
+| Window | Task |
+|---|---|
+| **H0–2** | Env (PyTorch, FlashAttn-3, Muon/AdamW, lm-eval-harness). **Start streaming tokenization** (FineWeb-Edu→DeepSeek-V3 shards, parallel, must stay ahead). `config_gen.py`: assert iso-param + iso-FLOPs (1 step/arm). **Paired-loader hash-equality test** (§5). **Throughput calibration** (§7) → fix tokens/run. |
+| **H2–~H6.7** | **Pair 1 (seed 1337): arm A (~2.33h) → arm B (~2.33h)**, all 80 GPUs, ckpt every 20–30 min. *During B, run a quick knockout on the first B checkpoint (~H5) for an earliest "is the module load-bearing?" read.* |
+| **~H6.7–H11** | **PRELIMINARY EVAL — the 12h deliverable.** On pair-1 final ckpts: **(1) knockout** (TriviaQA/PopQA on→off, B arm), **(2) targeted slices** (entity / repeated-n-gram NLL, A vs B), **(3) depth probe**, **(4) paired loss** (Pile + val). → **preliminary verdict per §11** (primary signals already decisive here). |
+| **H11–~H20.5** | **Seeds 2024 & 7: 4 runs × ~2.33h ≈ 9.3h** (sequential, all 80 GPUs) for the loss corroboration (carry pair-1). |
+| **H20.5–H24** | Final eval across 3 seeds: paired Δ + 95% CI, per-arm mean±std; batch `lm-eval-harness` (secondary); plots; **REPORT.md** vs §11. Buffer / rerun any failed job. |
 
----
-
-## 6. Hygiene + what we learned the hard way (read before launching)
-
-**THE SENSITIVITY RULE.** Check the **positive control first** (flat-Engram is the known-good control). If it doesn't clear the noise floor, the assay is *below sensitivity* — **record the number, draw no conclusion.** Separate **observation** (always record) from **claim** (gated on: control fires + run complete + ≥enough seeds + ablations). A null below sensitivity says nothing.
-
-**Mandatory hygiene (omit one ⇒ you redo a known mistake):**
-- **Iso-activated-param AND iso-FLOP (within §3.3) AND iso-memory** — pin the sparse budget identical across arms; Engram-27B trades routed experts for the table, so the baseline must spend the same budget (the EP-divisible 56/72 split).
-- **Paired seeds** (same seed/data/val order across matched arms); **enough seeds** that the floor < the effect (§3.5).
-- **Report BOTH** the no-tax axis (BPB ≈ tie, expected) and the thesis axis (downstream + knockout, must separate). **Never adjudicate on BPB alone.**
-- **Knockout** as the mechanistic check — note its co-adaptation confound (it conflates "info removed" with "co-adapted pathway deleted"); corroborate with the loss-gap + downstream, don't rest the verdict on it alone.
-
-**Off-regime traps we already hit — do NOT repeat (this is the compute we wasted):**
-- **Dense backbone instead of MoE** → no sparse budget to allocate → no U-shape exists. Engram is an MoE-regime claim.
-- **Arbitrary fraction of *total* params (we used 45–73%)** instead of a **20–25% *sparse-budget* split.** The law is about the *sparse* budget.
-- **Toy scale** (≤124–150M activated and/or <2.8B tokens): every such run washed into noise (backbone memorizes the small n-gram set itself). Our `moe_engram_v2` (150M-act / 2.8B tok) and a tiny `nanoGPT+Engram` (100M tok) both sat at the noise floor → "recorded, no verdict"; an independent ~100M-token study saw no consistent gain either. **The binding constraint is DATA (~100B tokens for the rare-n-gram tail), not model size.** 8×A100 / dense / toy is positive-control-only at best.
-- **Process:** one-page design doc + red-team review before any large (Config C) launch.
+> **Adaptive use of any slack (executor's call, in priority order):**
+> 1. If the H11 preliminary knockout is **weak/ambiguous**, spend phase 2 on **more tokens for pair 1** (extend the first B run) rather than more seeds — the table tail may be under-filled. (Knockout/slices are the verdict; strengthen them first.)
+> 2. Else add the 2 extra seeds (loss corroboration) as scheduled.
+> 3. Else (time left over) the optional long-context + RULER@32k (§11.5).
+> Do **not** spend slack on extra ρ points or longer single runs beyond ~80B at the expense of the primary signals.
 
 ---
 
-## 7. Risks & out-of-scope
+## 9. Evaluation protocol (exact)
 
-**Risks:** weak BPB axis (expected near-null; verdict is downstream+knockout) · below-sensitivity false-negative (→ §3.5 + §6) · unfair non-iso baseline false-positive (→ §6) · mocked official repo (full reimpl) · CPU-offload path is the main perf risk (→ Step 0) · FP8 grouped-GEMM may not speed fine-grained MoE (→ Step 0) · proxy-corpus mismatch ⇒ **judge by deltas & signatures (U-shape, knockout collapse), not absolute scores** · knockout co-adaptation confound.
+**9.1 Primary loss.** Per-token NLL on (a) Pile test, (b) FineWeb-Edu held-out val. Per run; per arm mean±std over seeds; **paired** Δ = loss_A(seed) − loss_B(seed).
 
-**Out of scope (one line).** The **structured / VSA / role-filler ("binding") value** is NOT part of this reproduction — Engram uses a **flat value exclusively**; the structured value is novel, untested (status OPEN), and only begins *after* the flat U-shape reproduces. Do not carry a structured arm / writable store / multi-hop / resonator into this work.
+**9.2 Knockout (primary verdict — zero cross-run noise).** Each **Engram-arm** ckpt: eval TriviaQA (5-shot EM) + PopQA **twice** — normal, and with `knockout=True` (contribution zeroed at layers 2&6). Report on→off degradation as a **retention ratio**. *Paper expectation: factual tasks retain ~29%.* Within-model A/B ⇒ immune to seed noise ⇒ valid from pair 1 alone.
+
+**9.3 Targeted slices (primary, low-noise).** Held-out FineWeb-Edu positions: (a) tokens continuing a 2/3-gram seen earlier in the same doc; (b) tokens inside named-entity spans (fast NER). Mean per-token NLL, both arms. Report **slice-gap (A−B)** vs **global-gap**. *Expectation: slice-gap > global-gap.*
+
+**9.4 Effective-depth probe (low-noise).** LogitLens: per layer, project hidden through the tied output embedding; record earliest layer whose argmax = final prediction (or per-layer KL to final). *Expectation: Engram arm resolves at earlier layers.*
+
+**9.5 Downstream (secondary).** lm-eval-harness on the §5 list. Near-floor and noisy at 0.48B — **report, do not gate.**
+
+**9.6 Optional long-context.** Continue-train best B + its A pair ~1–2B tokens at 8–16k (RoPE scaling); eval **RULER @32k** (Multi-Query NIAH + Variable Tracking).
 
 ---
 
-## 8. First-week checklist
-- [ ] **D1–2:** Implement `EngramRead` (§2) + unit tests (§5 Step 0): causality, K=8 distinct primes, scalar gate, pinned-CPU tables + async H2D excluded from GPU optimizer, separate param group, side-tensor survives recompute. Cross-check shapes vs `engram_demo_v1.py`.
-- [ ] **D1–2 (parallel):** Stand up Megatron-Core MoE + TE FP8; build the **568M/5.7B** sweep config (**EP=8, routed=104/112, +2 shared, TP=1, PP=1**, grouped-GEMM, fp32 router, aux-loss-free bias); splice Engram `ModuleSpec` at [2,15]; **reconcile the small-model geometry to ~5.7B total and record it**. Choose & document the **backbone optimizer (distributed-Adam vs Muon)**.
-- [ ] **D2:** Tokenizer (DeepSeek-V3) + data pipeline for FineWeb-Edu/DCLM (**Pile held out**); tokenize ≥60B tokens; verify held-out split + bytes/token.
-- [ ] **D2 (gate infra):** micro-benchmark the offload H2D/D2H + CPU-Adam path (<~10%); validate FP8 grouped-GEMM speedup (≥1.15× or fall back to BF16).
-- [ ] **D3:** Run **Config A** (≥5 paired seeds, 40 H100, <1 day). Apply the **§3.5 sensitivity gate** (shape / CI, not a fixed Δ).
-- [ ] **D3:** One-page design doc + red-team before any larger launch.
-- [ ] **D4–5:** If gate passes, launch **Config B** (12 runs, ~1.5–2 days, 100B FP8). Stand up lm-eval (`mmlu,bbh,triviaqa,nq_open,lambada_openai,ruler@32k`) + PopQA YAML + the knockout intervention code path; dry-run on a checkpoint.
-- [ ] **D5–6:** Plot U-shape (val vs ρ); confirm optimum 20–25% Engram, up-turn by ρ≈0.5, Δ≈−0.014. **Go/no-go memo** for Config C.
-- [ ] **If go:** schedule **Config C** (Engram-27B vs iso MoE-27B, 262B tok, ~1 week incl. **YaRN 32k extension** + eval + knockout) per §3.4 / §5 Steps 3–6.
+## 10. Decision criteria (what counts as verified)
+
+**PASS — "Engram is effective" (both primary signals, available at H12 from pair 1):**
+1. **Knockout:** disabling Engram degrades TriviaQA/PopQA substantially — target **≥40% relative EM drop** (ideally toward the paper's ~29% retained).
+2. **Targeted slices:** Engram-arm NLL on entity / repeated-n-gram slices clearly lower than pure-MoE, **and slice-gap > global-gap**.
+
+**CORROBORATING — global loss (secondary, by H24 over 3 seeds):**
+3. Paired across all 3 seeds, B's val/Pile loss < A in **all 3** pairs and mean paired Δ exceeds the across-seed std. Stats: `Δ_i=loss_A(i)−loss_B(i)`; report `mean(Δ)`, `std(Δ)`, 95% CI `= mean ± 4.303·std/√3` (t, df=2).
+
+**⚠ Power note (be realistic):** with seed σ≈0.008 and n=3, CI half-width ≈ `4.303·0.008/√3 ≈ 0.020` nats, while the *expected* effect is ~0.010–0.015 nats ⇒ **the loss criterion may not reach significance even if the effect is real.** Expected — which is exactly why **knockout + slices are the primary verdict.**
+
+**HONEST NEGATIVE (a valid result):** if knockout shows Engram clearly stores knowledge and the depth probe shows earlier resolution, but the paired loss Δ is within noise → report *"Engram is functionally active (stores knowledge, deepens the net) but its net loss advantage is not statistically resolved at 0.48B / ~70B tokens."*
+
+**BUG SIGNAL (debug before trusting anything):** if knockout does **not** degrade factual tasks, the Engram path isn't exercised (gate saturated, indices wrong, residual not added) — fix wiring before believing any number. *Catch this at ~H5 on the first B checkpoint.*
+
+---
+
+## 11. Known pitfalls & mitigations
+
+| Pitfall | Mitigation |
+|---|---|
+| MoE MFU collapse (all-to-all) | DDP + full replication, **no EP** (§6). |
+| Engram gather/hash bottleneck | vectorize hashing; precompute indices; confirm in §7. |
+| Seed noise swamps loss | 3 seeds + **paired** identical stream; primary verdict = knockout/slices. |
+| Reduced 70B under-fills the table | adaptive: if H11 knockout weak, add tokens to pair 1 before adding seeds (§8). |
+| Absolute loss ≠ paper | expected (different corpus); only **relative** A-vs-B claimed. |
+| Config drift | single `config_gen.py`; assert iso-param/iso-FLOPs at every run start; identical world size. |
+| Muon integration risk | fallback AdamW; whichever, use it for **all** runs. |
+| Tokenization eats the budget | stream from H0, overlapped; only needs to stay ahead of 8.3M tok/s. |
+
+---
+
+## 12. Deliverables
+`results/`: `loss_table.csv` (per-run + paired Δ + CI), `knockout.csv` (on/off, retention ratio), `slices.csv` (slice-gap vs global-gap), `depth_probe.png`, `downstream.csv` (secondary), optional `ruler.csv`, `loss_curves.png` (all runs; B should pull below A from mid-training). **`REPORT.md`** — verdict vs §10, with the honest-negative caveat stated explicitly. Plus a one-line note on the two executor judgment calls: tokens/run (from §7) and Muon-vs-AdamW (§3, fixed once for all runs).
+
+---
+
+## 13. Reference numbers (paper, arXiv:2601.07372 — for sanity; do NOT expect to match absolutes)
+- Sweet spot: ~**20–25%** of sparse budget → Engram (ρ≈75–80%); ρ≈40% still matched pure MoE.
+- Small-scale regimes where the U was measured: `P_tot≈5.7B/P_act=568M`, `P_tot≈9.9B/P_act=993M`; measured loss gap ≈ **0.014 nats**.
+- Knockout: factual tasks (e.g. TriviaQA) retain ~**29%** when Engram disabled.
+- Module defaults: `N={2,3}`, H=8 hash heads, early insertion (~layer 2) optimal, context-aware gate, tokenizer-compression (~23% vocab reduction; optional here).
+- 27B headline (NOT our target): MMLU +3.0, CMMLU +4.0, BBH +5.0, ARC-C +3.7, MATH +2.4, Multi-Query NIAH@32k 84.2→97.0.
+- Sources: paper `arXiv:2601.07372` / official (mocked-demo) `github.com/deepseek-ai/Engram`; independent small-scale impl `github.com/AutoArk/TinyEngram`.
+
+**Out of scope:** the structured / VSA ("binding") value extension — Engram uses a flat value exclusively; that extension is future work and begins only after this flat verification passes.
+
+---
+
+**End of plan.** Start at §8, H0. Two judgment calls left to the executor: (1) exact tokens/run (set by §7 calibration); (2) Muon vs AdamW (§3, fix once for all runs). **The 12h preliminary stands on knockout + slices from pair 1; seeds are corroboration.**
