@@ -1,14 +1,14 @@
-# H4.0 — official 80GPU calibration complete; 70B schedule infeasible
+# H4.1 — A launch hit cn34 set_device OOM; cn02 replacement verified
 
-- Elapsed: H4.0
-- Active run: no Engram training run is active; official 80GPU calibration just completed
+- Elapsed: H4.1
+- Active run: pair-1 A seed 1337 launch job `165273` failed before any train step; canceled residual allocation
 - Step/tokens vs target: A-arm official calibration processed 786,432,000 tokens over 200 steps; B-arm throughput confirmation processed 196,608,000 tokens over 50 steps
 - Measured MFU and tok/s: 80GPU A seed 1337 grouped-mm + mbs4/ga6, steps 5-200 averaged 2,711,455 tok/s, 1.450s/step, MFU 9.76%; 80GPU B seed 1337 grouped-mm + mbs4/ga6, steps 5-50 averaged 2,609,871 tok/s, 1.507s/step, MFU 9.40% (B is 3.75% slower)
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
 - Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands carry explicit `--time/--mem` plus shell `timeout` for probes
-- Node health: 80x H100-80GB reachable. Exclude `cn17` (confirmed CUDA context OOM on empty GPUs). `cn34` passed a fresh 8-rank CUDA `set_device` check and completed A/B calibration as part of the 80GPU nodelist.
-- Current 80GPU calibration nodelist: `cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn29,cn34,cn35`; `cn03/cn04` remain occupied by unrelated user jobs.
+- Node health: 80x H100-80GB reachable. Exclude `cn17` (confirmed CUDA context OOM on empty GPUs). Exclude `cn34` for training: despite passing calibration and a quick probe, pair-1 A job `165273` failed at `torch.cuda.set_device` on `cn34` rank67/local_rank3. `cn02` is mixed but has 8 free H100s and passed a fresh 8-rank CUDA `set_device` probe.
+- Current 80GPU training nodelist: `cn02,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn29,cn35`; use `--cpus-per-task=16` because `cn02` has CPU allocation pressure, but preserve world size, batch, optimizer, precision, and data order.
 - Feedback loop: read `origin/main:feedback/review-20260629T0033Z.md` (VERDICT: ISSUES). Acknowledged throughput/schedule risk and tokenization risk. Not applying expert coarsening because current `handoff.md` §2/§3 explicitly fixes the only arm difference as `88 routed` vs `68 routed + Engram`; wrote `feedback/reply-20260629T0036Z.md`. Will time-box mbs8 memory probe, then launch pair-1 with the best faithful 88/68 config if no larger speedup appears.
 - User note: found and read `/mnt/vast/workspaces/JAIF/dy/code/symbolicLLM/DOC/43_intro.pdf` with `timeout`; it is 43 cluster usage guidance (Slurm, VAST, Apptainer, Spack) and does not conflict with `handoff.md`
 - Environment: PyTorch 2.9.1+cu128, datasets/transformers/lm-eval present; FlashAttention/Transformer Engine absent; example PyTorch 2.7 Apptainer image also lacks Megablocks/Tutel/DeepSpeed/FlashAttention
@@ -26,5 +26,5 @@
 - Schedule impact: official measured throughput is far below the 8.34M tok/s handoff target. 70B/run would take ~7.16h for A and ~7.45h for B; 60B/run would still take ~6.14h/6.39h. The original 70B pair-1 preliminary cannot meet H12, and six 60-80B runs cannot fit 24h.
 - Open anomaly: 64GPU `micro_batch_size=8, grad_accum=4` remains rejected. Default CE chunk 256 OOMed on first step; CE chunk 128 + DDP bucket-view completed step 1 at 1,270,903 tok/s but OOMed on step 2 after AdamW state allocation in `chunked_cross_entropy` (`64MiB` logits request, only `9-41MiB` free on failing ranks). `micro_batch_size=6, grad_accum=5` also OOMed on step 2: CE256 requested `126MiB`; CE128+expandable requested `64MiB` and was slower on step 1. These are hard memory gates under faithful 88/68 config.
 - Tokens/run judgment call: for the H12 primary-verdict path, use a reduced 20B-token pair-1 run (5,086 steps at 3,932,160 tokens/step) and state this as a schedule-driven deviation from the 60-80B planning range. This is only for knockout/slices/depth preliminary evidence; do not claim a powered global-loss verdict from it. Extend pair-1 or add seeds only if time remains.
-- Next: push H4.0 calibration/progress, then launch pair-1 A seed 1337 for 20B tokens on all 80 GPUs with checkpoints every 20-30 minutes. During/after A, restart tokenization with retry/backoff in a separate output tranche.
-- ETA: A 20B ~2.05h, B 20B ~2.13h, first B checkpoint ~H6.4, pair-1 preliminary eval target remains possible by H12 only under this reduced-token assumption.
+- Next: push H4.1 node anomaly, then relaunch pair-1 A seed 1337 for 20B tokens on all 80 GPUs using `cn02` instead of `cn34`, with checkpoints every 20-30 minutes. During/after A, restart tokenization with retry/backoff in a separate output tranche.
+- ETA: A 20B ~2.05h after relaunch, B 20B ~2.13h, first B checkpoint ~H6.6, pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
