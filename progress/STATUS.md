@@ -1,8 +1,8 @@
-# H6.0 — pair-1 A 45% complete
+# H6.3 — pair-1 A third checkpoint complete
 
-- Elapsed: H6.0
+- Elapsed: H6.3
 - Active run: pair-1 A seed 1337 reduced 20B run, Slurm job `165275`, output `runs/pair1_A_seed1337_20B_mbs4_80_v2`
-- Step/tokens vs target: step 2,288 / 5,086; 8,996,782,080 / 20,000,000,000 tokens (44.98%)
+- Step/tokens vs target: step 3,047 / 5,086; 11,981,291,520 / 20,000,000,000 tokens (59.91%)
 - Measured MFU and tok/s: active run is stable at ~2.70M tok/s, MFU ~9.7%; official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
@@ -29,7 +29,8 @@
 - Queued next run: pair-1 B seed 1337 Slurm job `165281` with `afterok:165275`, same nodelist and same pair-1 `data/fineweb_edu_deepseek/shards.txt` stream as A. See `progress/logs/h5_pair1_B_queued.md`.
 - Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
 - Milestone: A second checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step002007.pt` (28.0GB); see `progress/logs/h6_pair1_A_second_checkpoint.md`.
+- Milestone: A third checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step003013.pt` (28.0GB); see `progress/logs/h6_pair1_A_third_checkpoint.md`.
 - Milestone: h4 tokenization tranche complete; see `progress/logs/h5_tokenization_h4_complete.md`.
 - Knockout eval preflight: `load_records()` loaded TriviaQA validation and PopQA test samples successfully, so the first-B-checkpoint knockout jobs should not block on initial dataset generation.
 - Next: monitor A throughput drift and next checkpoint; verify B starts after A completes, then run answer-NLL plus QA-EM knockout at the first B checkpoint.
-- ETA: A completion around H7.1 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.6-H7.8; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
+- ETA: A completion around H7.0 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.5-H7.7; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
