@@ -1,0 +1,5 @@
+checkpoint,task,metric,records,normal,knockout,delta_knockout_minus_normal,retention_ratio,notes
+runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt,triviaqa,answer_nll,50,4.439720230102539,4.44627986907959,0.006559638977050781,,weak positive NLL degradation
+runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt,popqa,answer_nll,50,10.805519351959228,10.792759609222411,-0.012759742736816406,,knockout slightly improves NLL
+runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt,triviaqa,qa_em,25,0.0,0.0,,,"floor; non-informative"
+runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt,popqa,qa_em,25,0.0,0.0,,,"floor; non-informative"

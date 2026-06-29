@@ -84,6 +84,7 @@ def main() -> None:
     parser.add_argument("--max-steps-override", type=int)
     parser.add_argument("--grad-accum-override", type=int)
     parser.add_argument("--micro-batch-size-override", type=int)
+    parser.add_argument("--checkpoint-minutes-override", type=float)
     parser.add_argument("--no-checkpoint", action="store_true")
     parser.add_argument("--calibration", action="store_true")
     args = parser.parse_args()
@@ -155,6 +156,9 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     log_path = output_dir / f"train_rank{rank}.jsonl"
     tokens_per_micro_global = world * micro_bsz * shape.seq_len
+    checkpoint_minutes = float(train_cfg["checkpoint_minutes"])
+    if args.checkpoint_minutes_override is not None:
+        checkpoint_minutes = float(args.checkpoint_minutes_override)
     last_ckpt = time.time()
     start_time = time.time()
 
@@ -215,12 +219,20 @@ def main() -> None:
             with log_path.open("a") as f:
                 f.write(json.dumps(metrics) + "\n")
             print(json.dumps(metrics), flush=True)
-            ckpt_due = (time.time() - last_ckpt) / 60 >= float(train_cfg["checkpoint_minutes"])
-            if not args.no_checkpoint and (
-                ckpt_due or step + 1 == max_steps or (args.calibration and step + 1 == max_steps)
-            ):
+        ckpt_due = (time.time() - last_ckpt) / 60 >= checkpoint_minutes
+        should_ckpt = not args.no_checkpoint and (
+            ckpt_due or step + 1 == max_steps or (args.calibration and step + 1 == max_steps)
+        )
+        if dist.is_initialized():
+            ckpt_flag = torch.tensor([1 if should_ckpt else 0], device=device, dtype=torch.int32)
+            dist.broadcast(ckpt_flag, src=0)
+            should_ckpt = bool(ckpt_flag.item())
+        if should_ckpt:
+            if rank == 0:
                 save_checkpoint(output_dir / f"ckpt_step{step+1:06d}.pt", model, optimizer, step + 1)
-                last_ckpt = time.time()
+            if dist.is_initialized():
+                dist.barrier()
+            last_ckpt = time.time()
     if dist.is_initialized():
         dist.destroy_process_group()
 

@@ -1,0 +1,42 @@
+{
+  "checkpoint": "runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt",
+  "input_shape": [
+    2,
+    512
+  ],
+  "engram_layer_records": [
+    {
+      "layer": "block_2",
+      "hidden_rms": 7.271662712097168,
+      "delta_rms": 0.007788393180817366,
+      "delta_hidden_ratio": 0.001071060891263187,
+      "delta_max_abs": 0.1201171875
+    },
+    {
+      "layer": "block_6",
+      "hidden_rms": 13.134958267211914,
+      "delta_rms": 0.047938328236341476,
+      "delta_hidden_ratio": 0.003649675054475665,
+      "delta_max_abs": 2.1560897827148438
+    },
+    {
+      "layer": "block_2",
+      "hidden_rms": 7.271547794342041,
+      "delta_rms": 0.0,
+      "delta_hidden_ratio": 0.0,
+      "delta_max_abs": 0.0
+    },
+    {
+      "layer": "block_6",
+      "hidden_rms": 13.130303382873535,
+      "delta_rms": 0.0,
+      "delta_hidden_ratio": 0.0,
+      "delta_max_abs": 0.0
+    }
+  ],
+  "final_hidden_rms": 1.0,
+  "final_hidden_delta_rms": 0.03526870161294937,
+  "final_hidden_delta_ratio": 0.03526870161294937,
+  "last_logit_delta_mean_abs": 0.04489979147911072,
+  "last_logit_delta_max_abs": 0.265625
+}

@@ -1,10 +1,10 @@
-# H7.8 - first B checkpoint under knockout eval
+# H8.0 - weak knockout, B final-only rerun active
 
-- Elapsed: H7.8
-- Active run: first-B-checkpoint knockout eval. NLL job `165324` on `cn03`; QA-EM job `165325` on `cn04`; checkpoint `runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt`.
-- Step/tokens vs target: B checkpoint step 959 / matched endpoint 5,027; 3,770,941,440 / 19,766,968,320 tokens. B job `165317` failed shortly after checkpoint at rank0 step 964, so full matched-endpoint B is not yet available.
-- Measured MFU and tok/s: first B run was stable around 2.58-2.62M tok/s, MFU ~9.3-9.4% before checkpoint. Official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s.
-- Next make-or-break gate: answer-NLL plus QA-EM knockout on TriviaQA/PopQA is running now. If factual recall does not collapse, treat it as the §10 BUG GATE blocker and stop to fix Engram wiring before trusting any number.
+- Elapsed: H8.0
+- Active run: pair-1 B final-only rerun, Slurm job `165327`, output `runs/pair1_B_seed1337_final5027_mbs4_80`
+- Step/tokens vs target: final-only B has started and logged step 22 / 5,027; target remains matched A endpoint step 5,027 / 19,766,968,320 tokens. First checkpoint gate used `runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt`.
+- Measured MFU and tok/s: first B run was stable around 2.58-2.62M tok/s, MFU ~9.3-9.4% before checkpoint; final-only rerun early warmup is ~2.5M tok/s. Official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s.
+- Knockout gate result: weak/no factual-collapse at B step 959. TriviaQA answer-NLL delta knockout-normal = +0.00656; PopQA delta = -0.01276. TriviaQA and PopQA QA-EM are both 0.0 normal and 0.0 knockout, so EM is floor/non-informative at this early checkpoint. Wiring diagnostic shows Engram is nonzero but small: block2 delta/hidden RMS 0.00107, block6 0.00365, final hidden delta RMS 0.0353, last-logit mean abs delta 0.0449.
 - Held-out eval rule: targeted slices, depth, and loss eval must use disjoint data, not the repeated pair-1 training stream. Use `data/fineweb_edu_deepseek_h4/shards.txt` (20.002B-token h4 tranche) or another clean split for those evals.
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
@@ -30,14 +30,14 @@
 - Tokens/run judgment call: for the H12 primary-verdict path, use a reduced 20B-token pair-1 run (5,086 steps at 3,932,160 tokens/step) and state this as a schedule-driven deviation from the 60-80B planning range. This is only for knockout/slices/depth preliminary evidence; do not claim a powered global-loss verdict from it. Extend pair-1 or add seeds only if time remains.
 - Pair-1 A endpoint anomaly: job `165275` failed with Slurm `ExitCode=1:0` after rank0 logged step 5,034 and after a full 28.0GB checkpoint at step 5,027. No Python/NCCL/OOM stack was present in Slurm stdout. To preserve paired invariants, pair-1 endpoint is fixed to step 5,027 for both A and B.
 - Pair-1 B relaunch: old dependency job `165281` was canceled after A failed; first relaunch `165313` hit `cn02` batch-host `RaisedSignal:53`; second relaunch `165316` used a valid node set but incorrectly passed `shards.txt` itself to `--token-files`, causing the expected loader "too short" error. Corrected job `165317` expanded the same 60 shard paths from `data/fineweb_edu_deepseek/shards.txt`, wrote first checkpoint at step 959, then failed after rank0 step 964 with no traceback in Slurm stdout.
-- Checkpoint/save anomaly: both A and B have now failed soon after a checkpoint save. After knockout gate, fix checkpoint synchronization/resume path before attempting a full B matched endpoint.
+- Checkpoint/save/storage anomaly: both A and B failed soon after large checkpoint saves while VAST was at/near full. Added synchronized checkpoint decision + DDP barrier and a `--checkpoint-minutes-override` knob; B final-only rerun uses `--checkpoint-minutes-override 9999` to save only the final checkpoint.
 - Storage anomaly: VAST reported `0` global free space and refused `results/knockout` creation. Deleted old self-generated A intermediate checkpoints `ckpt_step001002.pt`, `ckpt_step002007.pt`, `ckpt_step003013.pt`, and `ckpt_step004020.pt`; kept A endpoint `ckpt_step005027.pt` and B first checkpoint `ckpt_step000959.pt`.
-- Queued/active next run: knockout eval jobs `165324` and `165325`; see `progress/logs/h8_B_first_checkpoint_knockout.md`.
+- Queued/active next run: pair-1 B final-only rerun job `165327`; see `progress/logs/h8_knockout_results_and_B_final_rerun.md`.
 - Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
 - Milestone: A second checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step002007.pt` (28.0GB); see `progress/logs/h6_pair1_A_second_checkpoint.md`.
 - Milestone: A third checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step003013.pt` (28.0GB); see `progress/logs/h6_pair1_A_third_checkpoint.md`.
 - Milestone: A fourth checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step004020.pt` (28.0GB); see `progress/logs/h7_pair1_A_fourth_checkpoint.md`.
 - Milestone: h4 tokenization tranche complete; see `progress/logs/h5_tokenization_h4_complete.md`.
 - Knockout eval preflight: `load_records()` loaded TriviaQA validation and PopQA test samples successfully, so the first-B-checkpoint knockout jobs should not block on initial dataset generation.
-- Next: monitor knockout eval outputs; if knockout does not degrade factual recall, debug Engram wiring before any more training metrics. If knockout passes, fix checkpoint/resume and relaunch/continue B toward matched endpoint.
-- ETA: NLL gate should finish first; QA-EM may run longer. Pair-1 preliminary by H12 now depends on knockout result plus checkpoint/resume repair.
+- Next: monitor B final-only to step 5,027. Treat first-checkpoint numbers as a weak/bug-gate warning and do not trust downstream/slice/loss conclusions yet. If final B checkpoint still shows no factual degradation under knockout, stop and debug Engram scale/wiring before additional seeds.
+- ETA: B final-only endpoint around H10.1-H10.3 if throughput holds; then rerun knockout plus held-out h4 slices/depth for the preliminary verdict.
