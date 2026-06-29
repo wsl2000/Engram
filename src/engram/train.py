@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import json
 import math
 import os
@@ -165,14 +166,20 @@ def main() -> None:
         step_aux = torch.zeros((), device=device)
         step_entropy = torch.zeros((), device=device)
         step_t0 = time.time()
-        for _ in range(grad_accum):
+        for micro_step in range(grad_accum):
             x, y = next(loader)
             x = x.to(device=device, non_blocking=True)
             y = y.to(device=device, non_blocking=True)
-            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
-                out = model(x, labels=y, knockout=False)
-                loss = out["loss"] + float(train_cfg["router_aux_loss_coef"]) * out["aux_loss"]
-            (loss / grad_accum).backward()
+            sync_context = (
+                model.no_sync()
+                if isinstance(model, DDP) and micro_step < grad_accum - 1
+                else nullcontext()
+            )
+            with sync_context:
+                with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+                    out = model(x, labels=y, knockout=False)
+                    loss = out["loss"] + float(train_cfg["router_aux_loss_coef"]) * out["aux_loss"]
+                (loss / grad_accum).backward()
             step_loss += out["loss"].detach() / grad_accum
             step_aux += out["aux_loss"].detach() / grad_accum
             step_entropy += out["router_entropy"].detach() / grad_accum
@@ -198,6 +205,9 @@ def main() -> None:
             "loader_seed": loader_seed,
             "arm": cfg["arm"],
             "seed": cfg["seed"],
+            "moe_backend": os.environ.get("ENGRAM_MOE_BACKEND", "loop").lower(),
+            "micro_batch_size": micro_bsz,
+            "grad_accum_steps": grad_accum,
         }
         if rank == 0:
             with log_path.open("a") as f:

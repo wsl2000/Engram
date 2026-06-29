@@ -1,0 +1,7 @@
+run,arm,backend,world_size,micro_batch,grad_accum,steps_used,avg_step_time_s,avg_tokens_per_s,avg_mfu,status,notes
+calib_A_seed1337,A,loop,80,1,26,8-12,10.578562927246093,402919.4344597948,0.014510474614311953,rejected,H2.1 original loop calibration
+calib_loop_nosync64_A_seed1337,A,loop,64,1,32,7-10,9.017928838729858,465956.40271556436,0.020975807986419504,under_target,DDP no_sync reduces communication but not enough
+calib_grouped_cast_nosync64_A_seed1337,A,grouped,64,1,32,3-6,2.971745491027832,1411511.1523578088,0.06354153892938477,best_so_far,native torch._grouped_mm plus DDP no_sync
+probe_grouped_cast_A3_seed1337,A,grouped,1,1,1,2-3,0.13314473628997803,15398.66245725434,0.04436458141677474,probe,1GPU mbs1 after AdamW state allocation
+probe_grouped_mbs2_A3_seed1337,A,grouped,1,2,1,2-3,0.17338943481445312,23623.13252047144,0.06805983239957692,probe,1GPU mbs2 fits and improves tokens/s
+calib_grouped_mbs2_64_A_seed1337,A,grouped,64,2,16,0,,,,blocked,first attempt hit cn34 set_device OOM; retry denied by Slurm busy nodes

@@ -1,7 +1,30 @@
 import torch
+import pytest
 
 from engram.config import ModelShape
-from engram.model import EngramTransformerLM
+from engram.model import EngramTransformerLM, MoELayer
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA grouped-mm kernel")
+def test_grouped_mm_moe_matches_loop_forward_backward():
+    torch.manual_seed(0)
+    moe = MoELayer(d_model=32, expert_hidden=16, routed_experts=5, top_k=2).cuda().to(torch.bfloat16)
+    x_loop = torch.randn(2, 9, 32, device="cuda", dtype=torch.bfloat16, requires_grad=True)
+    x_grouped = x_loop.detach().clone().requires_grad_(True)
+
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        loop = moe._forward_loop(x_loop)
+        grouped = moe._forward_grouped_mm(x_grouped)
+
+    assert torch.allclose(loop.hidden.float(), grouped.hidden.float(), atol=5e-2, rtol=5e-2)
+    assert torch.allclose(loop.aux_loss.float(), grouped.aux_loss.float(), atol=1e-6, rtol=1e-6)
+    assert torch.allclose(loop.router_entropy.float(), grouped.router_entropy.float(), atol=1e-6, rtol=1e-6)
+
+    loop_loss = loop.hidden.float().square().mean() + loop.aux_loss + loop.router_entropy
+    grouped_loss = grouped.hidden.float().square().mean() + grouped.aux_loss + grouped.router_entropy
+    loop_loss.backward()
+    grouped_loss.backward()
+    assert torch.allclose(x_loop.grad.float(), x_grouped.grad.float(), atol=5e-2, rtol=5e-2)
 
 
 def test_small_model_forward_backward_with_engram():

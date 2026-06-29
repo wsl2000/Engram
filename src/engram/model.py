@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass
 
 import torch
@@ -122,7 +123,46 @@ class MoELayer(nn.Module):
         aux_loss, entropy = self._router_stats(router_probs, top_idx)
         return MoEOutput(out.reshape(original_shape), aux_loss, entropy)
 
+    def _forward_grouped_mm(self, x: torch.Tensor) -> MoEOutput:
+        original_shape = x.shape
+        flat = x.reshape(-1, x.shape[-1])
+        router_probs, top_vals, top_idx = self._route(flat)
+        expert_flat = flat if flat.dtype == torch.bfloat16 else flat.to(torch.bfloat16)
+
+        num_tokens = expert_flat.shape[0]
+        pair_experts = top_idx.reshape(-1)
+        pair_rows = torch.arange(num_tokens, device=expert_flat.device).repeat_interleave(self.top_k)
+        pair_weights = top_vals.reshape(-1)
+        order = torch.argsort(pair_experts, stable=True)
+        sorted_experts = pair_experts[order]
+        sorted_rows = pair_rows[order]
+        sorted_weights = pair_weights[order]
+        counts = torch.bincount(sorted_experts, minlength=self.routed_experts).to(torch.int32)
+        offsets = torch.cumsum(counts, dim=0, dtype=torch.int32)
+
+        dispatched = expert_flat[sorted_rows]
+        gate = torch._grouped_mm(dispatched, self.routed.w_gate, offs=offsets)
+        up = torch._grouped_mm(dispatched, self.routed.w_up, offs=offsets)
+        routed = torch._grouped_mm(F.silu(gate) * up, self.routed.w_down, offs=offsets)
+        weighted = routed * sorted_weights.to(routed.dtype).unsqueeze(-1)
+
+        out = self.shared.forward_expert(0, expert_flat)
+        out.index_add_(0, sorted_rows, weighted)
+
+        aux_loss, entropy = self._router_stats(router_probs, top_idx)
+        return MoEOutput(out.reshape(original_shape), aux_loss, entropy)
+
     def forward(self, x: torch.Tensor) -> MoEOutput:
+        backend = os.environ.get("ENGRAM_MOE_BACKEND", "loop").lower()
+        if backend not in {"loop", "grouped", "auto"}:
+            raise ValueError(f"unknown ENGRAM_MOE_BACKEND={backend!r}")
+        use_grouped = backend == "grouped" or (
+            backend == "auto" and x.is_cuda and x.dtype == torch.bfloat16 and hasattr(torch, "_grouped_mm")
+        )
+        if use_grouped:
+            if not (x.is_cuda and hasattr(torch, "_grouped_mm")):
+                raise RuntimeError("grouped MoE backend requires CUDA and torch._grouped_mm")
+            return self._forward_grouped_mm(x)
         return self._forward_loop(x)
 
 
