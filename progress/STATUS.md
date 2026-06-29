@@ -1,8 +1,8 @@
-# H5.0 — eval tooling smoke-passed; A near first checkpoint
+# H5.1 — pair-1 A first checkpoint complete
 
-- Elapsed: H5.0
+- Elapsed: H5.1
 - Active run: pair-1 A seed 1337 reduced 20B run, Slurm job `165275`, output `runs/pair1_A_seed1337_20B_mbs4_80_v2`
-- Step/tokens vs target: step 895 / 5,086; 3,519,283,200 / 20,000,000,000 tokens (17.60%)
+- Step/tokens vs target: step 1,015 / 5,086; 3,991,142,400 / 20,000,000,000 tokens (19.96%)
 - Measured MFU and tok/s: active run is stable at ~2.70M tok/s, MFU ~9.7%; official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
@@ -27,5 +27,6 @@
 - Open anomaly: 64GPU `micro_batch_size=8, grad_accum=4` remains rejected. Default CE chunk 256 OOMed on first step; CE chunk 128 + DDP bucket-view completed step 1 at 1,270,903 tok/s but OOMed on step 2 after AdamW state allocation in `chunked_cross_entropy` (`64MiB` logits request, only `9-41MiB` free on failing ranks). `micro_batch_size=6, grad_accum=5` also OOMed on step 2: CE256 requested `126MiB`; CE128+expandable requested `64MiB` and was slower on step 1. These are hard memory gates under faithful 88/68 config.
 - Tokens/run judgment call: for the H12 primary-verdict path, use a reduced 20B-token pair-1 run (5,086 steps at 3,932,160 tokens/step) and state this as a schedule-driven deviation from the 60-80B planning range. This is only for knockout/slices/depth preliminary evidence; do not claim a powered global-loss verdict from it. Extend pair-1 or add seeds only if time remains.
 - Queued next run: pair-1 B seed 1337 Slurm job `165281` with `afterok:165275`, same nodelist and same pair-1 `data/fineweb_edu_deepseek/shards.txt` stream as A. See `progress/logs/h5_pair1_B_queued.md`.
-- Next: monitor A for first checkpoint and throughput drift; monitor CPU tokenization tranche `165276`; verify B starts after A completes, then run answer-NLL knockout at the first B checkpoint.
+- Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
+- Next: monitor A throughput drift and next checkpoint; monitor CPU tokenization tranche `165276`; verify B starts after A completes, then run answer-NLL knockout at the first B checkpoint.
 - ETA: A completion around H6.5 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.0-H7.2; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
