@@ -1,6 +1,6 @@
-# H3.4 — grouped-mm microbatch probe: mbs4 best, mbs8 memory gate
+# H3.5 — mbs8 rejected after CE128 retry; probing mbs6 next
 
-- Elapsed: H3.4
+- Elapsed: H3.5
 - Active run: no Engram training run is active; grouped-mm/backend calibration probes only
 - Step/tokens vs target: official 80GPU 200-step calibration still pending; best 64GPU grouped-mm probe processed 33,554,432 tokens over 8 short steps
 - Measured MFU and tok/s: 64GPU A seed 1337 grouped-mm + DDP no_sync + mbs4/ga8, steady steps 3-8 averaged 2,042,121 tok/s, 2.05s/step, MFU 9.19%; mbs2/ga16 averaged 1,738,402 tok/s, MFU 7.83%
@@ -24,6 +24,6 @@
 - Optimization attempts: earlier padded batched PyTorch paths were rejected; native `torch._grouped_mm` is viable. Isolated 1xH100 MoE forward+backward improved from 78ms to 3ms; 1xH100 full-model grouped mbs1 steps 2-3 were ~0.13s/step; 64GPU grouped mbs1 steady steps 3-6 averaged 1.41M tok/s; mbs2 improved to 1.74M tok/s; mbs4 improved to 2.04M tok/s. Loop/no_sync 64GPU steady was only 0.466M tok/s
 - Code status: default MoE backend remains `loop`; grouped backend must be enabled explicitly with `ENGRAM_MOE_BACKEND=grouped` until 80GPU calibration verifies it for both arms. `ENGRAM_CE_CHUNK_TOKENS` defaults to 256, preserving old behavior unless overridden. `pytest -q` passes
 - Schedule impact: 64GPU grouped mbs4 extrapolates to roughly 2.55M tok/s on 80GPU if scaling is linear, still far below the 8.34M tok/s handoff target. 70B/run would be ~7.6h at that extrapolated rate; six runs would not fit 24h
-- Open anomaly: 64GPU `micro_batch_size=8, grad_accum=4` hit CUDA OOM in chunked CE logits allocation (~126MB) with ~79GB already used. Added CE chunk configurability and DDP bucket-view memory reduction; next probe uses `ENGRAM_CE_CHUNK_TOKENS=128`
-- Next: push H3.4 progress/code, then retry grouped backend at mbs8 on 64 clean nodes with CE chunk 128; if mbs8 fits and materially improves throughput, set intended global batch decomposition for all runs and perform the required 80GPU 200-step calibration
+- Open anomaly: 64GPU `micro_batch_size=8, grad_accum=4` remains rejected. Default CE chunk 256 OOMed on first step; CE chunk 128 + DDP bucket-view completed step 1 at 1,270,903 tok/s but OOMed on step 2 after AdamW state allocation in `chunked_cross_entropy` (`64MiB` logits request, only `9-41MiB` free on failing ranks). This is now a hard memory gate for mbs8 under faithful 88/68 config.
+- Next: push H3.5 anomaly update, then probe grouped backend at mbs6/ga5 on 64 clean nodes. If mbs6 fits and improves over mbs4, use it for official 80GPU 200-step calibration; otherwise lock mbs4 as the best faithful setting and launch pair-1 despite the schedule risk.
 - ETA: scientific preliminary verdict is blocked by throughput; no knockout/slice verdict has been produced

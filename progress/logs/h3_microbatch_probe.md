@@ -10,7 +10,7 @@ Completed probes:
 
 Rejected or blocked:
 
-- 64GPU mbs8/ga4 at default CE chunk 256 OOMed in `chunked_cross_entropy` during the logits allocation (~126MB request with ~79GB already used). This is a memory gate, not a model wiring gate.
+- 64GPU mbs8/ga4 at default CE chunk 256 OOMed in `chunked_cross_entropy` during the logits allocation (~126MB request with ~79GB already used). CE chunk 128 + DDP bucket-view completed step 1 at 1,270,903 tok/s but OOMed on step 2 after AdamW state allocation (`64MiB` request, only `9-41MiB` free on failing ranks). This is a hard memory gate for mbs8, not a model wiring gate.
 - mbs4 is the current best accepted setting, but linear 80GPU extrapolation is only ~2.55M tok/s. That implies about 7.6h for one 70B run and does not support the six-run 24h handoff schedule.
 
 Code change for next probe:
@@ -20,5 +20,5 @@ Code change for next probe:
 
 Next probe:
 
-- Retry 64GPU mbs8/ga4 with `ENGRAM_CE_CHUNK_TOKENS=128`.
-- If it fits and throughput improves materially, run the required 80GPU 200-step calibration on clean nodes before any training launch.
+- Probe 64GPU mbs6/ga5 as the remaining plausible faithful microbatch setting.
+- If mbs6 fits and throughput improves materially, run the required 80GPU 200-step calibration on clean nodes before any training launch. Otherwise lock mbs4 as the best faithful setting.
