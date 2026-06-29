@@ -112,12 +112,13 @@ def main() -> None:
         x = x_cpu.to(device=device, non_blocking=True)
         states, final_hidden = layer_states(model, x, knockout=args.knockout)
         with torch.inference_mode():
-            final_logits = model.logits_for_hidden(final_hidden[0, positions])
+            weight_dtype = model.token_embedding.weight.dtype
+            final_logits = model.logits_for_hidden(final_hidden[0, positions].to(weight_dtype))
             final_pred = torch.argmax(final_logits, dim=-1)
             earliest = torch.full((positions.numel(),), fill_value=shape.n_layers, dtype=torch.long, device=device)
             unresolved = torch.ones_like(earliest, dtype=torch.bool)
             for layer_idx, state in enumerate(states):
-                lens_hidden = model.final_norm(state)[0, positions]
+                lens_hidden = model.final_norm(state)[0, positions].to(weight_dtype)
                 pred = torch.argmax(model.logits_for_hidden(lens_hidden), dim=-1)
                 matched = unresolved & (pred == final_pred)
                 earliest[matched] = layer_idx

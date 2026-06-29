@@ -1,0 +1,5 @@
+checkpoint,task,metric,records,normal,knockout,delta_knockout_minus_normal,positive_delta_frac,retention_ratio
+b5027,triviaqa,answer_nll,200,3.615769668072462,3.6091362030059098,-0.006633465066552162,0.455,
+b5027,popqa,answer_nll,200,9.611481037139892,9.592465469837189,-0.01901556730270386,0.405,
+b5027,triviaqa,5shot_em,100,0.0,0.0,0.0,,
+b5027,popqa,5shot_em,100,0.0,0.0,0.0,,

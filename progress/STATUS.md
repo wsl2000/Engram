@@ -1,12 +1,13 @@
-# H8.4 - B final-only rerun active, final eval queued
+# H10.3 - preliminary verdict pushed, h4 unique-data pair started
 
-- Elapsed: H8.4
-- Active run: pair-1 B final-only rerun, Slurm job `165327`, output `runs/pair1_B_seed1337_final5027_mbs4_80`
-- Step/tokens vs target: final-only B logged step 901 / 5,027 at 2026-06-29T04:12:49Z; tokens_seen 3,542,876,160 vs matched A endpoint 19,766,968,320 tokens. First checkpoint gate used `runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt`.
-- Measured MFU and tok/s: B final-only is steady around 2.56-2.60M tok/s, MFU ~9.2-9.4%. Official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s.
-- Queued final evals: Slurm jobs `165333`-`165340`, dependency `afterany:165327`, each with a final-checkpoint size guard. Jobs cover B final TriviaQA/PopQA NLL+5-shot EM knockout, A/B held-out h4 targeted slices, and A/B held-out h4 depth probes.
-- Queued gate diagnostics: Slurm job `165342`, dependency `afterany:165327`, evaluates B step 959 and B step 5,027 on identical held-out h4 batches. It records gate alpha, memory RMS, Engram contribution RMS, final hidden delta, and last-token logit delta.
-- Storage: VAST free space is ~99G. Final-only B is intentionally configured to write only `ckpt_step005027.pt`; if free space drops near the checkpoint size, delete older self-generated checkpoint artifacts before final save.
+- Elapsed: H10.3
+- Active run: fresh h4 unique-data pair, arm A seed 2024, Slurm job `165367`, output `runs/pair_h4_A_seed2024_20B_mbs4_80`
+- Step/tokens vs target: pair-1 A/B both completed matched endpoint step 5,027 / 19,766,968,320 tokens. h4 A has started toward the same 5,027-step / 19.77B-token endpoint.
+- Measured MFU and tok/s: pair-1 B final ended at 2.58M tok/s, MFU 9.29%; official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s.
+- Preliminary verdict: `progress/PRELIMINARY.md` says NOT VERIFIED / INCONCLUSIVE for pair 1. Knockout did not degrade TriviaQA/PopQA; targeted slices are mixed. Engram path is active and grew, so this is not a dead-path bug, but the repeated 4.69B-unique training stream likely washed out the memory signal.
+- Pair-1 final evals: B endpoint TriviaQA answer-NLL delta knockout-normal = -0.00663; PopQA = -0.01902. 5-shot EM is 0.0 normal and 0.0 knockout for both. h4 slices: global A-B = -0.00283, repeated-ngram A-B = -0.02377, entity-proxy A-B = +0.01585. Depth: B median resolves one layer earlier, but mean earliest layer is tied.
+- Gate diagnostics: B step 959 -> 5027 final hidden delta RMS rose 0.0413 -> 0.0796; last-logit mean abs delta rose 0.0506 -> 0.1197; layer-6 contribution/hidden RMS ratio rose 0.00390 -> 0.00830. Alpha is saturated near 1.0, not suppressed.
+- Storage: removed obsolete self-generated B step-959 checkpoint after saving diagnostics. VAST free space recovered to ~89G before h4 A launch.
 - Knockout gate result: weak/no factual-collapse at B step 959. TriviaQA answer-NLL delta knockout-normal = +0.00656; PopQA delta = -0.01276. TriviaQA and PopQA QA-EM are both 0.0 normal and 0.0 knockout, so EM is floor/non-informative at this early checkpoint. Wiring diagnostic shows Engram is nonzero but small: block2 delta/hidden RMS 0.00107, block6 0.00365, final hidden delta RMS 0.0353, last-logit mean abs delta 0.0449.
 - Held-out eval rule: targeted slices, depth, and loss eval must use disjoint data, not the repeated pair-1 training stream. Use `data/fineweb_edu_deepseek_h4/shards.txt` (20.002B-token h4 tranche) or another clean split for those evals.
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
@@ -35,7 +36,7 @@
 - Pair-1 B relaunch: old dependency job `165281` was canceled after A failed; first relaunch `165313` hit `cn02` batch-host `RaisedSignal:53`; second relaunch `165316` used a valid node set but incorrectly passed `shards.txt` itself to `--token-files`, causing the expected loader "too short" error. Corrected job `165317` expanded the same 60 shard paths from `data/fineweb_edu_deepseek/shards.txt`, wrote first checkpoint at step 959, then failed after rank0 step 964 with no traceback in Slurm stdout.
 - Checkpoint/save/storage anomaly: both A and B failed soon after large checkpoint saves while VAST was at/near full. Added synchronized checkpoint decision + DDP barrier and a `--checkpoint-minutes-override` knob; B final-only rerun uses `--checkpoint-minutes-override 9999` to save only the final checkpoint.
 - Storage anomaly: VAST reported `0` global free space and refused `results/knockout` creation. Deleted old self-generated A intermediate checkpoints `ckpt_step001002.pt`, `ckpt_step002007.pt`, `ckpt_step003013.pt`, and `ckpt_step004020.pt`; kept A endpoint `ckpt_step005027.pt` and B first checkpoint `ckpt_step000959.pt`.
-- Queued/active next run: pair-1 B final-only rerun job `165327`; see `progress/logs/h8_knockout_results_and_B_final_rerun.md`.
+- Queued/active next run: h4 unique-data A seed 2024 job `165367`; if complete, launch matching h4 B seed 2024 with the same h4 token stream and endpoint. This replaces repeated-stream seed continuation because pair-1 primary signals were inconclusive/weak.
 - Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
 - Milestone: A second checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step002007.pt` (28.0GB); see `progress/logs/h6_pair1_A_second_checkpoint.md`.
 - Milestone: A third checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step003013.pt` (28.0GB); see `progress/logs/h6_pair1_A_third_checkpoint.md`.

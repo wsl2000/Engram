@@ -105,7 +105,7 @@ def per_token_nll(
     with torch.inference_mode():
         for start in range(0, flat_h.shape[0], chunk_tokens):
             end = min(start + chunk_tokens, flat_h.shape[0])
-            logits = model.logits_for_hidden(flat_h[start:end])
+            logits = model.logits_for_hidden(flat_h[start:end].to(model.token_embedding.weight.dtype))
             loss = F.cross_entropy(logits.float(), flat_y[start:end], reduction="none")
             losses[start:end] = loss.detach().cpu()
     return losses.reshape(y.shape)

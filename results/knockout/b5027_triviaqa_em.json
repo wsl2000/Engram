@@ -1,0 +1,14 @@
+{
+  "task": "triviaqa",
+  "checkpoint": "runs/pair1_B_seed1337_final5027_mbs4_80/ckpt_step005027.pt",
+  "arm": "B",
+  "seed": 1337,
+  "engram_enabled": true,
+  "moe_backend": "grouped",
+  "records": 100,
+  "num_shots": 5,
+  "max_new_tokens": 16,
+  "normal_em": 0.0,
+  "knockout_em": 0.0,
+  "retention_ratio": null
+}
