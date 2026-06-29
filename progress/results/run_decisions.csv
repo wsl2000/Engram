@@ -1,0 +1,2 @@
+decision,wall_time,arm_scope,tokens_per_step,tokens_per_run,max_steps,reason,status
+pair1_preliminary_tokens,H4.0,A_and_B_seed1337,3932160,20000000000,5086,official 80GPU calibration makes 60-80B incompatible with H12 preliminary; use reduced pair1 only for primary knockout/slices/depth evidence,active
