@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -24,6 +25,8 @@ def main() -> None:
     parser.add_argument("--batch-docs", type=int, default=256)
     parser.add_argument("--num-workers", type=int, default=1)
     parser.add_argument("--worker-index", type=int, default=0)
+    parser.add_argument("--load-retries", type=int, default=6)
+    parser.add_argument("--retry-sleep", type=float, default=20.0)
     args = parser.parse_args()
     if not 0 <= args.worker_index < args.num_workers:
         raise ValueError("worker-index must be in [0, num-workers)")
@@ -34,7 +37,25 @@ def main() -> None:
     eos_id = tokenizer.eos_token_id
     if eos_id is None:
         eos_id = tokenizer.convert_tokens_to_ids(tokenizer.eos_token or "<｜end▁of▁sentence｜>")
-    ds = load_dataset(args.dataset, name=args.subset, split=args.split, streaming=True)
+    last_load_error: BaseException | None = None
+    for attempt in range(args.load_retries + 1):
+        try:
+            ds = load_dataset(args.dataset, name=args.subset, split=args.split, streaming=True)
+            break
+        except BaseException as exc:
+            last_load_error = exc
+            if attempt >= args.load_retries:
+                raise
+            sleep_s = args.retry_sleep * (2**attempt)
+            print(
+                f"load_dataset failed on attempt {attempt + 1}/{args.load_retries + 1}: {exc!r}; "
+                f"sleeping {sleep_s:.1f}s",
+                file=sys.stderr,
+                flush=True,
+            )
+            time.sleep(sleep_s)
+    else:
+        raise RuntimeError("unreachable load_dataset retry state") from last_load_error
     if args.num_workers > 1:
         ds = ds.shard(num_shards=args.num_workers, index=args.worker_index)
 
