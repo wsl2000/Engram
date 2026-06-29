@@ -54,4 +54,3 @@ def test_small_model_knockout_changes_engram_arm_outputs():
         normal = model(x, knockout=False)["hidden"]
         knocked = model(x, knockout=True)["hidden"]
     assert not torch.allclose(normal, knocked)
-

@@ -1,0 +1,10 @@
+attempt,arm,world_size,steps,step_time_s,tokens_per_s,mfu,status,notes
+full_batched,A,1,1,0.7810235023498535,2622.200220400812,0.007554735061669694,rejected,fast single-GPU but OOM under DDP+AdamW
+full_batched,B,1,1,0.7465517520904541,2743.2793430131273,0.007903572151118051,rejected,fast single-GPU but OOM under DDP+AdamW
+grouped_batched,A,1,1,1.72922945022583,1184.3425403913516,0.003412170453388895,rejected,fit single-GPU but slower than full batched
+grouped_batched,B,1,1,1.6878910064697266,1213.348487639289,0.0034957385367740145,rejected,fit single-GPU but slower than full batched
+grouped_batched,A,64,1,120.96882891654968,34672.60150871957,0.0015608452365885846,rejected,fit DDP but much slower than original loop calibration
+full_batched_checkpoint,A,1,1,0.9609062671661377,2131.3213057084863,0.006140479918599944,rejected,fit single-GPU
+full_batched_checkpoint,B,1,1,0.853724479675293,2398.900404939706,0.006911393286314899,rejected,fit single-GPU
+full_batched_checkpoint,A,64,1,121.39343595504761,34551.3245176878,0.001555385749687605,rejected,fit DDP but unusably slow
+full_batched_checkpoint,A,64,2,115.94624280929565,36174.55726356433,0.0016284582908016269,rejected,fit DDP but unusably slow

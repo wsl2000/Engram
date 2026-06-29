@@ -89,13 +89,25 @@ class MoELayer(nn.Module):
         self.shared = ExpertBank(1, d_model, expert_hidden)
         self.routed = ExpertBank(routed_experts, d_model, expert_hidden)
 
-    def forward(self, x: torch.Tensor) -> MoEOutput:
-        original_shape = x.shape
-        flat = x.reshape(-1, x.shape[-1])
+    def _route(self, flat: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         router_logits = self.router(flat.float())
         router_probs = F.softmax(router_logits, dim=-1)
         top_vals, top_idx = torch.topk(router_probs, k=self.top_k, dim=-1)
         top_vals = top_vals / top_vals.sum(dim=-1, keepdim=True).clamp_min(1e-9)
+        return router_probs, top_vals, top_idx
+
+    def _router_stats(self, router_probs: torch.Tensor, top_idx: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        mean_prob = router_probs.mean(dim=0)
+        token_frac = torch.bincount(top_idx.reshape(-1), minlength=self.routed_experts).to(router_probs.dtype)
+        token_frac = token_frac / top_idx.numel()
+        aux_loss = self.routed_experts * torch.sum(mean_prob * token_frac)
+        entropy = -(router_probs * torch.log(router_probs.clamp_min(1e-9))).sum(dim=-1).mean()
+        return aux_loss, entropy
+
+    def _forward_loop(self, x: torch.Tensor) -> MoEOutput:
+        original_shape = x.shape
+        flat = x.reshape(-1, x.shape[-1])
+        router_probs, top_vals, top_idx = self._route(flat)
 
         out = self.shared.forward_expert(0, flat)
         for expert_idx in range(self.routed_experts):
@@ -107,11 +119,11 @@ class MoELayer(nn.Module):
             weighted = expert_out * top_vals[rows, slots].to(expert_out.dtype).unsqueeze(-1)
             out.index_add_(0, rows, weighted)
 
-        mean_prob = router_probs.mean(dim=0)
-        token_frac = F.one_hot(top_idx, num_classes=self.routed_experts).float().mean(dim=(0, 1))
-        aux_loss = self.routed_experts * torch.sum(mean_prob * token_frac)
-        entropy = -(router_probs * torch.log(router_probs.clamp_min(1e-9))).sum(dim=-1).mean()
+        aux_loss, entropy = self._router_stats(router_probs, top_idx)
         return MoEOutput(out.reshape(original_shape), aux_loss, entropy)
+
+    def forward(self, x: torch.Tensor) -> MoEOutput:
+        return self._forward_loop(x)
 
 
 class TransformerBlock(nn.Module):
@@ -236,4 +248,3 @@ class EngramTransformerLM(nn.Module):
         if labels is not None:
             out["loss"] = self.chunked_cross_entropy(hidden, labels)
         return out
-
