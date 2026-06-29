@@ -37,6 +37,7 @@ def load_model(args: argparse.Namespace) -> tuple[Any, dict[str, Any], torch.dev
     cfg = json.loads(Path(args.config).read_text())
     shape = ModelShape(**cfg["model"])
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
+    dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
     moe_backend = args.moe_backend or ("grouped" if device.type == "cuda" and hasattr(torch, "_grouped_mm") else "loop")
     os.environ["ENGRAM_MOE_BACKEND"] = moe_backend
     model = build_model_on_device(
@@ -45,7 +46,7 @@ def load_model(args: argparse.Namespace) -> tuple[Any, dict[str, Any], torch.dev
         engram_rows=int(cfg["engram_rows"]),
         engram_enabled=bool(cfg["engram_enabled"]),
         device=device,
-        dtype=torch.bfloat16,
+        dtype=dtype,
     )
     ckpt = torch.load(args.checkpoint, map_location="cpu")
     model.load_state_dict(ckpt["model"])
