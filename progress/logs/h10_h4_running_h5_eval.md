@@ -16,9 +16,23 @@ Held-out eval contamination mitigation:
 
 This h5 eval tranche is intended for h4-trained pair evaluation, not for training.
 
+Completion:
+
+- Job `165374` completed successfully in 16m47s.
+- Output: `data/fineweb_edu_deepseek_h5_eval/shards.txt`
+- 32 shards, 2,004,168,518 tokens.
+- Skipped 20,160,030,489 prefix tokens and 20,219,301 documents across 16 workers.
+- This is beyond the h4 training prefix by construction because `--skip-tokens` discards whole documents until each worker has skipped at least 1.26B tokens.
+
 Queued matching h4 B:
 
 - Job: `165375`
 - Dependency: `afterok:165373`
 - Output: `runs/pair_h4_B_seed2024_20B_mbs4_80_v2`
 - Same h4 token stream, seed 2024, mbs4/ga6, 80 GPUs, AdamW, bf16, final-only checkpoint.
+
+Storage:
+
+- Removed pair-1 A/B final checkpoints after their metrics and `progress/PRELIMINARY.md` were pushed.
+- `runs/` is now ~8MB until h4 checkpoints are written.
+- VAST free space recovered to ~122G.
