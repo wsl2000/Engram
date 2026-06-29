@@ -1,8 +1,8 @@
-# H5.2 — QA EM knockout runner staged
+# H5.3 — h4 tokenization complete; A stable
 
-- Elapsed: H5.2
+- Elapsed: H5.3
 - Active run: pair-1 A seed 1337 reduced 20B run, Slurm job `165275`, output `runs/pair1_A_seed1337_20B_mbs4_80_v2`
-- Step/tokens vs target: step 1,161 / 5,086; 4,565,237,760 / 20,000,000,000 tokens (22.83%)
+- Step/tokens vs target: step 1,415 / 5,086; 5,564,006,400 / 20,000,000,000 tokens (27.82%)
 - Measured MFU and tok/s: active run is stable at ~2.70M tok/s, MFU ~9.7%; official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
@@ -16,7 +16,7 @@
 - Implementation: added pure PyTorch DDP scaffold, MoE full replication, EngramRead, tokenizer script, training entry, Slurm calibration script; fixed DDP loader seed to split ranks while preserving A/B pairing; added direct GPU/bf16 model build and `--no-checkpoint`; added DDP `no_sync()` during accumulation; added optional `ENGRAM_MOE_BACKEND=grouped` using `torch._grouped_mm`; added configurable `ENGRAM_CE_CHUNK_TOKENS` and DDP `gradient_as_bucket_view=True`; added tokenizer `load_dataset` retry/backoff for the next CPU tranche
 - Local gates: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 10/10 with 1 CUDA grouped-mm test skipped on login; `scripts/eval_token_slices.py --help`, `scripts/eval_depth_probe.py --help`, and `scripts/eval_qa_em.py --help` passed; synthetic small-checkpoint smokes for `eval_token_slices.py`, `eval_depth_probe.py`, and `eval_qa_em.py` passed on CPU; CUDA grouped-mm regression passed on 1xH100; synthetic and real-shard paired-loader first 100 batches hash matched exactly
 - Tokenization: DeepSeek-V3 tokenizer + FineWeb-Edu `sample-350BT` smoke succeeded; real smoke paired-loader hash matched; tokenization script now batches docs and writes per-worker manifests
-- Tokenization anomaly/fix: 80-worker job 165112 hit HF 504 and was canceled before 1B shard flush; fixed `finally` flush, disabled non-tty tqdm, and reduced shard size to 100M. Robust tranche 165134 failed on HF 504 but flushed partial output: 60 shards / 4.6908B tokens. Current pair-1 loader samples with replacement over those 60 shards, so training can proceed but repeated sampling is a data-quality caveat. New CPU-only retry tranche `165276` is running on cn05-08 into `data/fineweb_edu_deepseek_h4`; it has produced 171 complete shard files so far but no final `shards.txt` yet, and is seeing HF 504s with retry/backoff working.
+- Tokenization anomaly/fix: 80-worker job 165112 hit HF 504 and was canceled before 1B shard flush; fixed `finally` flush, disabled non-tty tqdm, and reduced shard size to 100M. Robust tranche 165134 failed on HF 504 but flushed partial output: 60 shards / 4.6908B tokens. Current pair-1 loader samples with replacement over those 60 shards, so training can proceed but repeated sampling is a data-quality caveat. CPU-only retry tranche `165276` completed successfully on cn05-08; generated `data/fineweb_edu_deepseek_h4/shards.txt` from manifests: 208 shards / 20,002,166,023 tokens / 75GB. This h4 tranche is available for held-out/slice eval or later seeds, not pair-1 B.
 - Slurm smoke: 1xH100 tiny training passed; 80xH100 tiny DDP passed on clean nodelist after excluding `cn17`
 - Full-model probes: A/B zero-step build pass on 1xH100 with ~74.9GB free after weights; A/B 1-step probes pass with AdamW state allocation; A accidental checkpoint removed (`27GB`)
 - Invariants: active params `475,136,000` both arms; A non-embed `4,505,600,000`; B non-embed `4,505,598,976`; delta `1,024`; Engram sparse budget fraction `22.47%`; official 80GPU batch decomposition is mbs4/ga6 = `3,932,160` tokens/step (~4M)
@@ -28,5 +28,6 @@
 - Tokens/run judgment call: for the H12 primary-verdict path, use a reduced 20B-token pair-1 run (5,086 steps at 3,932,160 tokens/step) and state this as a schedule-driven deviation from the 60-80B planning range. This is only for knockout/slices/depth preliminary evidence; do not claim a powered global-loss verdict from it. Extend pair-1 or add seeds only if time remains.
 - Queued next run: pair-1 B seed 1337 Slurm job `165281` with `afterok:165275`, same nodelist and same pair-1 `data/fineweb_edu_deepseek/shards.txt` stream as A. See `progress/logs/h5_pair1_B_queued.md`.
 - Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
-- Next: monitor A throughput drift and next checkpoint; monitor CPU tokenization tranche `165276`; verify B starts after A completes, then run answer-NLL knockout at the first B checkpoint.
+- Milestone: h4 tokenization tranche complete; see `progress/logs/h5_tokenization_h4_complete.md`.
+- Next: monitor A throughput drift and next checkpoint; verify B starts after A completes, then run answer-NLL plus QA-EM knockout at the first B checkpoint.
 - ETA: A completion around H6.5 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.0-H7.2; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
