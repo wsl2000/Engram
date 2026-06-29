@@ -15,3 +15,10 @@ Held-out eval contamination mitigation:
 - Parameters: 16 workers, skip 1,260,000,000 tokens per worker, output 125,000,000 tokens per worker, 100M-token shards.
 
 This h5 eval tranche is intended for h4-trained pair evaluation, not for training.
+
+Queued matching h4 B:
+
+- Job: `165375`
+- Dependency: `afterok:165373`
+- Output: `runs/pair_h4_B_seed2024_20B_mbs4_80_v2`
+- Same h4 token stream, seed 2024, mbs4/ga6, 80 GPUs, AdamW, bf16, final-only checkpoint.
