@@ -25,6 +25,7 @@ def main() -> None:
     parser.add_argument("--batch-docs", type=int, default=256)
     parser.add_argument("--num-workers", type=int, default=1)
     parser.add_argument("--worker-index", type=int, default=0)
+    parser.add_argument("--skip-tokens", type=int, default=0)
     parser.add_argument("--load-retries", type=int, default=6)
     parser.add_argument("--retry-sleep", type=float, default=20.0)
     args = parser.parse_args()
@@ -63,6 +64,8 @@ def main() -> None:
     shard_tokens: list[np.ndarray] = []
     shard_count = 0
     total = 0
+    skipped_tokens = 0
+    skipped_docs = 0
     manifest = {
         "tokenizer": args.tokenizer,
         "dataset": args.dataset,
@@ -88,14 +91,19 @@ def main() -> None:
     manifest["num_workers"] = args.num_workers
     manifest["worker_index"] = args.worker_index
     manifest["batch_docs"] = args.batch_docs
+    manifest["skip_tokens_requested"] = args.skip_tokens
 
     def encode_texts(texts: list[str]) -> None:
-        nonlocal shard_count, total
+        nonlocal shard_count, skipped_docs, skipped_tokens, total
         encoded = tokenizer(texts, add_special_tokens=False)["input_ids"]
         for ids in encoded:
             if eos_id is not None:
                 ids.append(int(eos_id))
             arr = np.asarray(ids, dtype=np.uint32)
+            if skipped_tokens < args.skip_tokens:
+                skipped_tokens += int(arr.shape[0])
+                skipped_docs += 1
+                continue
             shard_tokens.append(arr)
             shard_count += int(arr.shape[0])
             total += int(arr.shape[0])
@@ -121,6 +129,8 @@ def main() -> None:
     finally:
         flush()
         manifest["total_tokens"] = total
+        manifest["skipped_tokens"] = skipped_tokens
+        manifest["skipped_docs"] = skipped_docs
         manifest_path.write_text(json.dumps(manifest, indent=2))
 
 
