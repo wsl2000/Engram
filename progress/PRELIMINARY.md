@@ -12,7 +12,7 @@ This is **not** a clean claim that Engram does not work. The Engram path is acti
 - B checkpoint: `runs/pair1_B_seed1337_final5027_mbs4_80/ckpt_step005027.pt`
 - Tokens per arm: 19,766,968,320
 - Optimizer/precision/world size: AdamW, bf16, 80 GPUs, DDP full expert replication, grouped local MoE backend
-- Data caveat: pair-1 consumed the 60-shard 4.6908B-token stream with replacement; held-out eval used disjoint h4 shards.
+- Data caveat: pair-1 consumed the 60-shard 4.6908B-token stream with replacement. Eval used a separate h4 tokenization directory, but the current manifests do not include document IDs, so document-level disjointness from pair-1 cannot be proven after the fact.
 
 ## Knockout - Primary
 
@@ -79,4 +79,4 @@ Interpretation: this is not a dead-path bug. The path changes hidden/logits and 
 
 ## Next Action
 
-Do not spend phase 2 on repeated-stream seeds. Following the handoff adaptive rule and `feedback/review-20260629T0356Z.md`, pivot to a fresh held-out h4 unique-data paired run. I removed only the obsolete B step-959 checkpoint after saving diagnostics, restored free space, and launched h4 A/seed 2024 as Slurm job `165367`. If it completes, launch h4 B/seed 2024 with the exact same h4 token stream, world size, batch, optimizer, precision, and 5,027-step endpoint.
+Do not spend phase 2 on repeated-stream seeds. Following the handoff adaptive rule and `feedback/review-20260629T0356Z.md`, pivot to a fresh h4 unique-data paired run. I removed only the obsolete B step-959 checkpoint after saving diagnostics, restored free space, and launched h4 A/seed 2024 as Slurm job `165367`. If it completes, launch h4 B/seed 2024 with the exact same h4 token stream, world size, batch, optimizer, precision, and 5,027-step endpoint. For h4-pair evaluation, do **not** reuse h4 as held-out; create a new document-ID-aware held-out tranche or run token/ngram decontamination first, per `feedback/review-20260629T0432Z.md`.
