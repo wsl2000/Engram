@@ -1,16 +1,16 @@
-# H6.7 — pair-1 A fourth checkpoint complete
+# H7.2 - pair-1 B relaunched after A endpoint anomaly
 
-- Elapsed: H6.7
-- Active run: pair-1 A seed 1337 reduced 20B run, Slurm job `165275`, output `runs/pair1_A_seed1337_20B_mbs4_80_v2`
-- Step/tokens vs target: step 4,059 / 5,086; 15,960,637,440 / 20,000,000,000 tokens (79.80%)
-- Measured MFU and tok/s: active run is stable at ~2.70M tok/s, MFU ~9.7%; official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s
-- Next make-or-break gate: first B checkpoint (~H7.6-H7.8) gets answer-NLL plus QA-EM knockout on TriviaQA/PopQA. If factual recall does not collapse, treat it as the §10 BUG GATE blocker and stop to fix Engram wiring before trusting any number.
+- Elapsed: H7.2
+- Active run: pair-1 B seed 1337 matched-endpoint run, Slurm job `165317`, output `runs/pair1_B_seed1337_matchA5027_mbs4_80`
+- Step/tokens vs target: B has started and logged step 50 / 5,027; 196,608,000 / 19,766,968,320 tokens. Target endpoint is the last complete A checkpoint, `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step005027.pt`.
+- Measured MFU and tok/s: A ran stably near ~2.70M tok/s, MFU ~9.7% until the final endpoint anomaly; early B steady steps are ~2.5M tok/s, MFU ~9.1% after warmup. Official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s.
+- Next make-or-break gate: first B checkpoint (~25 min after job 165317 launch, expected near step ~1,000) gets answer-NLL plus QA-EM knockout on TriviaQA/PopQA. If factual recall does not collapse, treat it as the §10 BUG GATE blocker and stop to fix Engram wiring before trusting any number.
 - Held-out eval rule: targeted slices, depth, and loss eval must use disjoint data, not the repeated pair-1 training stream. Use `data/fineweb_edu_deepseek_h4/shards.txt` (20.002B-token h4 tranche) or another clean split for those evals.
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
 - Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands carry explicit `--time/--mem` plus shell `timeout` for probes
-- Node health: 80x H100-80GB reachable. Exclude `cn17` (confirmed CUDA context OOM on empty GPUs). Exclude `cn34` for training: despite passing calibration and a quick probe, pair-1 A job `165273` failed at `torch.cuda.set_device` on `cn34` rank67/local_rank3. `cn02` is mixed but has 8 free H100s and passed a fresh 8-rank CUDA `set_device` probe.
-- Current 80GPU training nodelist: `cn02,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn29,cn35`; use `--cpus-per-task=16` because `cn02` has CPU allocation pressure, but preserve world size, batch, optimizer, precision, and data order.
+- Node health: 80x H100-80GB reachable. Exclude `cn17` (confirmed CUDA context OOM on empty GPUs). Exclude `cn34` for training: despite passing calibration and a quick probe, pair-1 A job `165273` failed at `torch.cuda.set_device` on `cn34` rank67/local_rank3. Also avoid `cn02` for new batch-host launches: immediately after A, debug job `165314` on the A nodelist failed before stdout with `RaisedSignal:53`; the same debug script passed on `cn03,cn04,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn29`.
+- Current 80GPU training nodelist: `cn03,cn04,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn29`; use `--cpus-per-task=16`, preserving world size, batch, optimizer, precision, and paired data order.
 - Feedback loop: read `origin/main:feedback/review-20260629T0033Z.md` (VERDICT: ISSUES) and `feedback/review-20260629T0234Z.md` (VERDICT: ON-TRACK). Acknowledged the H7.5 knockout bug gate, held-out-slice contamination risk, and instruction not to coarsen experts for the secondary loss signal. Not applying expert coarsening because current `handoff.md` §2/§3 explicitly fixes the only arm difference as `88 routed` vs `68 routed + Engram`; wrote `feedback/reply-20260629T0036Z.md` for the first review.
 - User note: found and read `/mnt/vast/workspaces/JAIF/dy/code/symbolicLLM/DOC/43_intro.pdf` with `timeout`; it is 43 cluster usage guidance (Slurm, VAST, Apptainer, Spack) and does not conflict with `handoff.md`
 - Environment: PyTorch 2.9.1+cu128, datasets/transformers/lm-eval present; FlashAttention/Transformer Engine absent; example PyTorch 2.7 Apptainer image also lacks Megablocks/Tutel/DeepSpeed/FlashAttention
@@ -28,12 +28,14 @@
 - Schedule impact: official measured throughput is far below the 8.34M tok/s handoff target. 70B/run would take ~7.16h for A and ~7.45h for B; 60B/run would still take ~6.14h/6.39h. The original 70B pair-1 preliminary cannot meet H12, and six 60-80B runs cannot fit 24h.
 - Open anomaly: 64GPU `micro_batch_size=8, grad_accum=4` remains rejected. Default CE chunk 256 OOMed on first step; CE chunk 128 + DDP bucket-view completed step 1 at 1,270,903 tok/s but OOMed on step 2 after AdamW state allocation in `chunked_cross_entropy` (`64MiB` logits request, only `9-41MiB` free on failing ranks). `micro_batch_size=6, grad_accum=5` also OOMed on step 2: CE256 requested `126MiB`; CE128+expandable requested `64MiB` and was slower on step 1. These are hard memory gates under faithful 88/68 config.
 - Tokens/run judgment call: for the H12 primary-verdict path, use a reduced 20B-token pair-1 run (5,086 steps at 3,932,160 tokens/step) and state this as a schedule-driven deviation from the 60-80B planning range. This is only for knockout/slices/depth preliminary evidence; do not claim a powered global-loss verdict from it. Extend pair-1 or add seeds only if time remains.
-- Queued next run: pair-1 B seed 1337 Slurm job `165281` with `afterok:165275`, same nodelist and same pair-1 `data/fineweb_edu_deepseek/shards.txt` stream as A. See `progress/logs/h5_pair1_B_queued.md`.
+- Pair-1 A endpoint anomaly: job `165275` failed with Slurm `ExitCode=1:0` after rank0 logged step 5,034 and after a full 28.0GB checkpoint at step 5,027. No Python/NCCL/OOM stack was present in Slurm stdout. To preserve paired invariants, pair-1 endpoint is fixed to step 5,027 for both A and B.
+- Pair-1 B relaunch: old dependency job `165281` was canceled after A failed; first relaunch `165313` hit `cn02` batch-host `RaisedSignal:53`; second relaunch `165316` used a valid node set but incorrectly passed `shards.txt` itself to `--token-files`, causing the expected loader "too short" error. Corrected job `165317` expands the same 60 shard paths from `data/fineweb_edu_deepseek/shards.txt` and is actively training.
+- Queued/active next run: pair-1 B seed 1337 Slurm job `165317`, same pair-1 shard stream as A, matched endpoint step 5,027. See `progress/logs/h7_pair1_A_endpoint_and_B_relaunch.md`.
 - Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
 - Milestone: A second checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step002007.pt` (28.0GB); see `progress/logs/h6_pair1_A_second_checkpoint.md`.
 - Milestone: A third checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step003013.pt` (28.0GB); see `progress/logs/h6_pair1_A_third_checkpoint.md`.
 - Milestone: A fourth checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step004020.pt` (28.0GB); see `progress/logs/h7_pair1_A_fourth_checkpoint.md`.
 - Milestone: h4 tokenization tranche complete; see `progress/logs/h5_tokenization_h4_complete.md`.
 - Knockout eval preflight: `load_records()` loaded TriviaQA validation and PopQA test samples successfully, so the first-B-checkpoint knockout jobs should not block on initial dataset generation.
-- Next: monitor A throughput drift and next checkpoint; verify B starts after A completes, then run answer-NLL plus QA-EM knockout at the first B checkpoint.
-- ETA: A completion around H7.1 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.6-H7.8; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
+- Next: monitor B job `165317` through first checkpoint, then immediately run answer-NLL plus QA-EM knockout at that checkpoint.
+- ETA: first B checkpoint around H7.7-H7.8 if throughput holds; B matched endpoint around H9.4-H9.5; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
