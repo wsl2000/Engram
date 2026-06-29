@@ -21,6 +21,7 @@ Preliminary verdict is written in `progress/PRELIMINARY.md`: NOT VERIFIED / INCO
 Adaptive action:
 
 - Removed obsolete self-generated `runs/pair1_B_seed1337_matchA5027_mbs4_80/ckpt_step000959.pt` after saving diagnostics.
-- Launched fresh h4 unique-data paired run, starting with A seed 2024 as Slurm job `165367`.
+- Launched fresh h4 unique-data paired run, starting with A seed 2024 as Slurm job `165367`, then canceled it because it used `torchrun --nnodes=10` from only the batch host and hung in rendezvous before training.
+- Relaunched h4 A seed 2024 as corrected Slurm job `165373` with one `srun` task per node; it is pending resources until 10 full H100 nodes are available.
 - H4 A uses the same invariants: 80 GPUs, DDP full replication, AdamW, bf16, mbs4/ga6, 5,027-step endpoint, final-only checkpoint.
 - Do not use h4 itself as held-out eval for the h4 pair. Prepare a new doc-ID-aware eval tranche or decontaminate before evaluating h4-trained checkpoints.
