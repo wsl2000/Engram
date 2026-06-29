@@ -219,6 +219,9 @@ class EngramTransformerLM(nn.Module):
     ):
         super().__init__()
         self.shape = shape
+        self.ce_chunk_tokens = int(os.environ.get("ENGRAM_CE_CHUNK_TOKENS", "256"))
+        if self.ce_chunk_tokens <= 0:
+            raise ValueError("ENGRAM_CE_CHUNK_TOKENS must be positive")
         self.token_embedding = nn.Embedding(shape.vocab_size, shape.d_model)
         self.blocks = nn.ModuleList()
         engram_layers = set(shape.engram_layers) if engram_enabled else set()
@@ -286,5 +289,5 @@ class EngramTransformerLM(nn.Module):
         hidden, aux_loss, stats = self.forward_hidden(input_ids, knockout=knockout)
         out = {"hidden": hidden, "aux_loss": aux_loss, **stats}
         if labels is not None:
-            out["loss"] = self.chunked_cross_entropy(hidden, labels)
+            out["loss"] = self.chunked_cross_entropy(hidden, labels, chunk_tokens=self.ce_chunk_tokens)
         return out

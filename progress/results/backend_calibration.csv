@@ -4,4 +4,8 @@ calib_loop_nosync64_A_seed1337,A,loop,64,1,32,7-10,9.017928838729858,465956.4027
 calib_grouped_cast_nosync64_A_seed1337,A,grouped,64,1,32,3-6,2.971745491027832,1411511.1523578088,0.06354153892938477,best_so_far,native torch._grouped_mm plus DDP no_sync
 probe_grouped_cast_A3_seed1337,A,grouped,1,1,1,2-3,0.13314473628997803,15398.66245725434,0.04436458141677474,probe,1GPU mbs1 after AdamW state allocation
 probe_grouped_mbs2_A3_seed1337,A,grouped,1,2,1,2-3,0.17338943481445312,23623.13252047144,0.06805983239957692,probe,1GPU mbs2 fits and improves tokens/s
-calib_grouped_mbs2_64_A_seed1337,A,grouped,64,2,16,0,,,,blocked,first attempt hit cn34 set_device OOM; retry denied by Slurm busy nodes
+calib_grouped_mbs2_64_A_seed1337,A,grouped,64,2,16,3-8,2.413055936495463,1738402.4487817015,0.07825709820973431,under_target,64GPU mbs2 grouped no_sync fits but still below handoff throughput target
+probe_grouped_mbs4_A2_seed1337,A,grouped,1,4,1,2,0.2674,30600,,probe,1GPU mbs4 fits; approximate from probe log
+calib_grouped_mbs4_64_A_seed1337,A,grouped,64,4,8,3-8,2.0542798042297363,2042120.8187900747,0.09192948939078836,best_so_far,64GPU mbs4 grouped no_sync best observed throughput
+probe_grouped_mbs8_A2_seed1337,A,grouped,1,8,1,2,0.467,35100,,probe,1GPU mbs8 fits; approximate from probe log
+calib_grouped_mbs8_64_A_seed1337,A,grouped,64,8,4,0,,,,oom,64GPU mbs8 failed in chunked cross-entropy logits allocation at default CE chunk 256

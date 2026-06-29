@@ -107,9 +107,10 @@ def main() -> None:
         free, total = torch.cuda.mem_get_info(device)
         print(json.dumps({"event": "build_model_done", "free_bytes": free, "total_bytes": total}), flush=True)
     if world > 1:
-        model = DDP(model, device_ids=[local_rank], output_device=local_rank)
+        model = DDP(model, device_ids=[local_rank], output_device=local_rank, gradient_as_bucket_view=True)
         if rank == 0:
             print(json.dumps({"event": "ddp_wrap_done", "world_size": world}), flush=True)
+    raw_model = model.module if isinstance(model, DDP) else model
 
     train_cfg = cfg["train"]
     if rank == 0:
@@ -206,6 +207,7 @@ def main() -> None:
             "arm": cfg["arm"],
             "seed": cfg["seed"],
             "moe_backend": os.environ.get("ENGRAM_MOE_BACKEND", "loop").lower(),
+            "ce_chunk_tokens": raw_model.ce_chunk_tokens,
             "micro_batch_size": micro_bsz,
             "grad_accum_steps": grad_accum,
         }

@@ -1,19 +1,19 @@
-# H3.0 — torch grouped-mm backend found; 64GPU still under target
+# H3.4 — grouped-mm microbatch probe: mbs4 best, mbs8 memory gate
 
-- Elapsed: H3.0
+- Elapsed: H3.4
 - Active run: no Engram training run is active; grouped-mm/backend calibration probes only
-- Step/tokens vs target: official 80GPU 200-step calibration still pending; best 64GPU grouped-mm probe processed 25,165,824 tokens over 6 short steps
-- Measured MFU and tok/s: 64GPU A seed 1337 grouped-mm + DDP no_sync + mbs1, steady steps 3-6 averaged 1,411,511 tok/s, 2.97s/step, MFU 6.35%
+- Step/tokens vs target: official 80GPU 200-step calibration still pending; best 64GPU grouped-mm probe processed 33,554,432 tokens over 8 short steps
+- Measured MFU and tok/s: 64GPU A seed 1337 grouped-mm + DDP no_sync + mbs4/ga8, steady steps 3-8 averaged 2,042,121 tok/s, 2.05s/step, MFU 9.19%; mbs2/ga16 averaged 1,738,402 tok/s, MFU 7.83%
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
 - Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands carry explicit `--time/--mem` plus shell `timeout` for probes
 - Node health: 80x H100-80GB reachable, but `cn17` fails 8-rank CUDA context creation with OOM on local ranks 4/5 despite empty `nvidia-smi`; exclude `cn17` from training nodelists
-- Clean 80GPU calibration nodelist: `cn02,cn04,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn35`
-- Feedback loop: no `feedback/` directory present yet
+- Current node availability: idle full-node candidates are `cn13,cn14,cn15,cn16,cn17,cn25,cn26,cn27,cn34,cn35`; exclude `cn17` (confirmed CUDA context OOM) and treat `cn34` as suspect after one `set_device` OOM, leaving 8 clean idle nodes at this instant. `cn03/cn04` are occupied by unrelated user jobs.
+- Feedback loop: read `origin/main:feedback/review-20260629T0033Z.md` (VERDICT: ISSUES). Acknowledged throughput/schedule risk and tokenization risk. Not applying expert coarsening because current `handoff.md` §2/§3 explicitly fixes the only arm difference as `88 routed` vs `68 routed + Engram`; wrote `feedback/reply-20260629T0036Z.md`. Will time-box mbs8 memory probe, then launch pair-1 with the best faithful 88/68 config if no larger speedup appears.
 - User note: found and read `/mnt/vast/workspaces/JAIF/dy/code/symbolicLLM/DOC/43_intro.pdf` with `timeout`; it is 43 cluster usage guidance (Slurm, VAST, Apptainer, Spack) and does not conflict with `handoff.md`
 - Environment: PyTorch 2.9.1+cu128, datasets/transformers/lm-eval present; FlashAttention/Transformer Engine absent; example PyTorch 2.7 Apptainer image also lacks Megablocks/Tutel/DeepSpeed/FlashAttention
 - Judgment call: Muon modules not installed/vetted; fixed optimizer to AdamW for all runs
-- Implementation: added pure PyTorch DDP scaffold, MoE full replication, EngramRead, tokenizer script, training entry, Slurm calibration script; fixed DDP loader seed to split ranks while preserving A/B pairing; added direct GPU/bf16 model build and `--no-checkpoint`; added DDP `no_sync()` during accumulation; added optional `ENGRAM_MOE_BACKEND=grouped` using `torch._grouped_mm`
+- Implementation: added pure PyTorch DDP scaffold, MoE full replication, EngramRead, tokenizer script, training entry, Slurm calibration script; fixed DDP loader seed to split ranks while preserving A/B pairing; added direct GPU/bf16 model build and `--no-checkpoint`; added DDP `no_sync()` during accumulation; added optional `ENGRAM_MOE_BACKEND=grouped` using `torch._grouped_mm`; added configurable `ENGRAM_CE_CHUNK_TOKENS` and DDP `gradient_as_bucket_view=True` for the next memory probe
 - Local gates: `pytest -q` passed 10/10 with 1 CUDA grouped-mm test skipped on login; CUDA grouped-mm regression passed on 1xH100; synthetic and real-shard paired-loader first 100 batches hash matched exactly
 - Tokenization: DeepSeek-V3 tokenizer + FineWeb-Edu `sample-350BT` smoke succeeded; real smoke paired-loader hash matched; tokenization script now batches docs and writes per-worker manifests
 - Tokenization anomaly/fix: 80-worker job 165112 hit HF 504 and was canceled before 1B shard flush; fixed `finally` flush, disabled non-tty tqdm, and reduced shard size to 100M. Robust tranche 165134 failed on HF 504 but flushed partial output: 60 shards / 4.6908B tokens
@@ -21,9 +21,9 @@
 - Full-model probes: A/B zero-step build pass on 1xH100 with ~74.9GB free after weights; A/B 1-step probes pass with AdamW state allocation; A accidental checkpoint removed (`27GB`)
 - Invariants: active params `475,136,000` both arms; A non-embed `4,505,600,000`; B non-embed `4,505,598,976`; delta `1,024`; Engram sparse budget fraction `22.47%`; tokens/step on 80 GPUs `4,259,840`; 70B max steps `16,432`
 - Calibration anomaly: full-model pure-PyTorch MoE uses Python expert dispatch; no Megablocks/Tutel/DeepSpeed/FlashAttention stack is installed. Current throughput is ~20.7x below the handoff planning target (~8.34M tok/s for 70B/run within ~2.33h)
-- Optimization attempts: earlier padded batched PyTorch paths were rejected; native `torch._grouped_mm` is viable. Isolated 1xH100 MoE forward+backward improved from 78ms to 3ms; 1xH100 full-model grouped mbs1 steps 2-3 were ~0.13s/step; 64GPU grouped mbs1 steady steps 3-6 averaged 1.41M tok/s. Loop/no_sync 64GPU steady was only 0.466M tok/s
-- Code status: default MoE backend remains `loop`; grouped backend must be enabled explicitly with `ENGRAM_MOE_BACKEND=grouped` until 80GPU calibration verifies it for both arms. `pytest -q` passes
-- Schedule impact: 64GPU grouped mbs1 extrapolates to roughly 1.76M tok/s on 80GPU if scaling is linear, still far below the 8.34M tok/s handoff target. 70B/run would be ~11h at that extrapolated rate; six runs would not fit 24h
-- Open anomaly: 64GPU `micro_batch_size=2, grad_accum=16` test did not run cleanly yet. One attempt hit a `cuda.set_device` OOM on `cn34` (same class as prior `cn17` anomaly); retry was denied by Slurm busy nodes. 1xH100 mbs2 grouped ran and improved step2-3 to ~23.6k tok/s
-- Next: push H3.0 progress/code, then retry grouped backend at mbs2 on 64/80 clean nodes; if mbs2 fits and materially improves throughput, set intended global batch decomposition for all runs and perform the required 80GPU 200-step calibration
+- Optimization attempts: earlier padded batched PyTorch paths were rejected; native `torch._grouped_mm` is viable. Isolated 1xH100 MoE forward+backward improved from 78ms to 3ms; 1xH100 full-model grouped mbs1 steps 2-3 were ~0.13s/step; 64GPU grouped mbs1 steady steps 3-6 averaged 1.41M tok/s; mbs2 improved to 1.74M tok/s; mbs4 improved to 2.04M tok/s. Loop/no_sync 64GPU steady was only 0.466M tok/s
+- Code status: default MoE backend remains `loop`; grouped backend must be enabled explicitly with `ENGRAM_MOE_BACKEND=grouped` until 80GPU calibration verifies it for both arms. `ENGRAM_CE_CHUNK_TOKENS` defaults to 256, preserving old behavior unless overridden. `pytest -q` passes
+- Schedule impact: 64GPU grouped mbs4 extrapolates to roughly 2.55M tok/s on 80GPU if scaling is linear, still far below the 8.34M tok/s handoff target. 70B/run would be ~7.6h at that extrapolated rate; six runs would not fit 24h
+- Open anomaly: 64GPU `micro_batch_size=8, grad_accum=4` hit CUDA OOM in chunked CE logits allocation (~126MB) with ~79GB already used. Added CE chunk configurability and DDP bucket-view memory reduction; next probe uses `ENGRAM_CE_CHUNK_TOKENS=128`
+- Next: push H3.4 progress/code, then retry grouped backend at mbs8 on 64 clean nodes with CE chunk 128; if mbs8 fits and materially improves throughput, set intended global batch decomposition for all runs and perform the required 80GPU 200-step calibration
 - ETA: scientific preliminary verdict is blocked by throughput; no knockout/slice verdict has been produced
