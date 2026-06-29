@@ -1,15 +1,17 @@
-# H6.3 — pair-1 A third checkpoint complete
+# H6.7 — pair-1 A fourth checkpoint complete
 
-- Elapsed: H6.3
+- Elapsed: H6.7
 - Active run: pair-1 A seed 1337 reduced 20B run, Slurm job `165275`, output `runs/pair1_A_seed1337_20B_mbs4_80_v2`
-- Step/tokens vs target: step 3,047 / 5,086; 11,981,291,520 / 20,000,000,000 tokens (59.91%)
+- Step/tokens vs target: step 4,059 / 5,086; 15,960,637,440 / 20,000,000,000 tokens (79.80%)
 - Measured MFU and tok/s: active run is stable at ~2.70M tok/s, MFU ~9.7%; official calibration baseline remains A 2,711,455 tok/s and B 2,609,871 tok/s
+- Next make-or-break gate: first B checkpoint (~H7.6-H7.8) gets answer-NLL plus QA-EM knockout on TriviaQA/PopQA. If factual recall does not collapse, treat it as the §10 BUG GATE blocker and stop to fix Engram wiring before trusting any number.
+- Held-out eval rule: targeted slices, depth, and loss eval must use disjoint data, not the repeated pair-1 training stream. Use `data/fineweb_edu_deepseek_h4/shards.txt` (20.002B-token h4 tranche) or another clean split for those evals.
 - Git/progress channel: verified push to `origin/main` after non-destructive rebase onto updated `handoff.md`
 - Authoritative plan: re-read updated 24h `handoff.md` in full after rebase; no 27B/U-shape sweep, use 6-run 0.48B activated paired plan
 - Launcher: Slurm on `cluster43`, partition `all`, use `srun/sbatch`; commands carry explicit `--time/--mem` plus shell `timeout` for probes
 - Node health: 80x H100-80GB reachable. Exclude `cn17` (confirmed CUDA context OOM on empty GPUs). Exclude `cn34` for training: despite passing calibration and a quick probe, pair-1 A job `165273` failed at `torch.cuda.set_device` on `cn34` rank67/local_rank3. `cn02` is mixed but has 8 free H100s and passed a fresh 8-rank CUDA `set_device` probe.
 - Current 80GPU training nodelist: `cn02,cn13,cn14,cn15,cn16,cn25,cn26,cn27,cn29,cn35`; use `--cpus-per-task=16` because `cn02` has CPU allocation pressure, but preserve world size, batch, optimizer, precision, and data order.
-- Feedback loop: read `origin/main:feedback/review-20260629T0033Z.md` (VERDICT: ISSUES). Acknowledged throughput/schedule risk and tokenization risk. Not applying expert coarsening because current `handoff.md` §2/§3 explicitly fixes the only arm difference as `88 routed` vs `68 routed + Engram`; wrote `feedback/reply-20260629T0036Z.md`. Will time-box mbs8 memory probe, then launch pair-1 with the best faithful 88/68 config if no larger speedup appears.
+- Feedback loop: read `origin/main:feedback/review-20260629T0033Z.md` (VERDICT: ISSUES) and `feedback/review-20260629T0234Z.md` (VERDICT: ON-TRACK). Acknowledged the H7.5 knockout bug gate, held-out-slice contamination risk, and instruction not to coarsen experts for the secondary loss signal. Not applying expert coarsening because current `handoff.md` §2/§3 explicitly fixes the only arm difference as `88 routed` vs `68 routed + Engram`; wrote `feedback/reply-20260629T0036Z.md` for the first review.
 - User note: found and read `/mnt/vast/workspaces/JAIF/dy/code/symbolicLLM/DOC/43_intro.pdf` with `timeout`; it is 43 cluster usage guidance (Slurm, VAST, Apptainer, Spack) and does not conflict with `handoff.md`
 - Environment: PyTorch 2.9.1+cu128, datasets/transformers/lm-eval present; FlashAttention/Transformer Engine absent; example PyTorch 2.7 Apptainer image also lacks Megablocks/Tutel/DeepSpeed/FlashAttention
 - Judgment call: Muon modules not installed/vetted; fixed optimizer to AdamW for all runs
@@ -30,7 +32,8 @@
 - Milestone: A first checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step001002.pt` (28.0GB); see `progress/logs/h5_pair1_A_first_checkpoint.md`.
 - Milestone: A second checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step002007.pt` (28.0GB); see `progress/logs/h6_pair1_A_second_checkpoint.md`.
 - Milestone: A third checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step003013.pt` (28.0GB); see `progress/logs/h6_pair1_A_third_checkpoint.md`.
+- Milestone: A fourth checkpoint complete at `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step004020.pt` (28.0GB); see `progress/logs/h7_pair1_A_fourth_checkpoint.md`.
 - Milestone: h4 tokenization tranche complete; see `progress/logs/h5_tokenization_h4_complete.md`.
 - Knockout eval preflight: `load_records()` loaded TriviaQA validation and PopQA test samples successfully, so the first-B-checkpoint knockout jobs should not block on initial dataset generation.
 - Next: monitor A throughput drift and next checkpoint; verify B starts after A completes, then run answer-NLL plus QA-EM knockout at the first B checkpoint.
-- ETA: A completion around H7.0 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.5-H7.7; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
+- ETA: A completion around H7.1 if throughput holds; B 20B ~2.13h; first B checkpoint around H7.6-H7.8; pair-1 preliminary eval target remains possible by H12 only under the reduced-token assumption and if nodes remain stable.
