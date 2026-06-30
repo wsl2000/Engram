@@ -1,3 +1,13 @@
+# H15.3 - waiting on resources; no extra tokenization
+
+- Elapsed: H15.3 experiment runtime.
+- Active run: h4 B job `167284` remains `PENDING (Resources)`; eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: unchanged; no B v3 output directory or checkpoint exists yet.
+- Queue estimate: `squeue --start` still reports tentative start `2026-07-01T21:32:39Z` for `167284`.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Data status: h4 train shards and h5 eval shards are available. Additional CPU-only tokenization was considered but not submitted because the available partition is H100-node backed and CPU/memory allocation could interfere with the 80-GPU backfill. Keep the queued 10x8 h4 B path prioritized.
+- Next: continue monitoring `167284`; after allocation, verify first-step invariants, tok/s/MFU, and 25-minute checkpoint creation.
+
 # H15.2 - queue topology alternatives rejected
 
 - Elapsed: H15.2 experiment runtime.
