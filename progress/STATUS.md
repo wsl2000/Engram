@@ -1,3 +1,13 @@
+# H15.1 - h4 B waiting on Slurm backfill
+
+- Elapsed: H15.1 experiment runtime.
+- Active run: h4 B Slurm job `167284` is still `PENDING (Resources)`. Dependent eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: unchanged; no post-resume training tokens yet. Target remains B seed 2024 step 5,027 / 19,766,968,320 tokens.
+- Measured MFU and tok/s: pending allocation.
+- Node health/resources: `squeue --start` reports tentative start `2026-07-01T21:32:39Z` for job `167284`; Slurm backfill estimates can move. The request is still 10 full H100 nodes / 80 H100, excluding `cn02,cn10,cn17,cn34`.
+- Feedback loop: pushed H15.0 eval queue state and pulled; no new feedback.
+- Next: poll before/around the backfill window, or earlier if resources free. When B starts, verify first logs and 25-minute checkpoints; after B success, eval array `167289` should run automatically.
+
 # H15.0 - h4 v3 eval array queued behind B
 
 - Elapsed: H15.0 experiment runtime.
