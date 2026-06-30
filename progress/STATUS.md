@@ -1,3 +1,13 @@
+# H19.5 - resumed blocked audit, still waiting for 80 H100
+
+- Elapsed: H19.5 wall-clock from the resumed run; no post-resume training tokens have run.
+- Active run: h4 B job `167284` remains `PENDING (Resources)`; dependent eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: unchanged. No B v3 output directory or checkpoint exists. Target remains B seed 2024, h4 stream, step 5,027 / 19,766,968,320 tokens.
+- Slurm evidence: `167284` still requests 10 nodes / 80 H100, excludes `cn02,cn10,cn17,cn34`, has no nodes assigned, and backfill remains `2026-07-02T04:43:08`. Current node snapshot shows only 6 full H100 nodes idle, below the 10 full-node requirement.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Blocked audit: this is the third resumed check with the same external blocker after the previous blocked state. The faithful h4 B job and dependent eval array are queued, topology alternatives were checked, and no safe non-H100 work remains that improves the requested final state without risking the allocation path.
+- Next after unblocking: verify B first-step invariants, tok/s/MFU, and 25-minute checkpoint; after B final checkpoint, collect eval array `167289` outputs and update verdict artifacts.
+
 # H19.4 - still pending; backfill slipped
 
 - Elapsed: H19.4 wall-clock from the resumed run; no post-resume training tokens have run.
