@@ -1,3 +1,15 @@
+# H20.1 - h4 B v3 running
+
+- Elapsed: H20.1 wall-clock from the resumed run.
+- Active run: h4 B job `167284` is `RUNNING` on `cn[14-15,19,24-26,29-32]` with 10 nodes / 80 H100. Dependent eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: latest checked rank0 log is step 86 / 5,027, tokens 338,165,760 / 19,766,968,320.
+- Measured MFU and tok/s: latest checked step reports 2,574,192 tok/s and MFU 9.27%; steady early steps are around 2.5-2.58M tok/s.
+- Invariants: arm B, seed 2024, loader seed rank0 2024, world size 80, AdamW, grouped MoE, bf16 CUDA autocast path, `micro_batch_size=4`, `grad_accum_steps=6`, `ce_chunk_tokens=256`.
+- Node health/resources: Slurm allocation TRES is `cpu=160,mem=18000G,node=10,billing=160,gres/gpu:h100=80`; batch host is `cn14`.
+- Checkpoints: none yet. First B v3 checkpoint expected after 25 minutes; output directory is `runs/pair_h4_B_seed2024_20B_mbs4_80_v3`.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Next: monitor first 25-minute checkpoint, then continue to final step 5,027. After B success, eval array `167289` should run automatically.
+
 # H19.5 - resumed blocked audit, still waiting for 80 H100
 
 - Elapsed: H19.5 wall-clock from the resumed run; no post-resume training tokens have run.

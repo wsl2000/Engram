@@ -1,0 +1,21 @@
+# H20.1 - h4 B v3 started
+
+- UTC: 2026-06-30T20:06:42Z.
+- Pulled `origin/main`; no new feedback files beyond `feedback/review-20260629T1032Z.md`.
+- Slurm job `167284` (`engram-h4-B2024v3`) is running.
+- Allocation: 10 nodes / 80 H100 on `cn[14-15,19,24-26,29-32]`; batch host `cn14`.
+- Allocated TRES: `cpu=160,mem=18000G,node=10,billing=160,gres/gpu:h100=80`.
+- Output log: `progress/logs/pair_h4_B_seed2024_20B_v3_167284.out`.
+- Run output dir: `runs/pair_h4_B_seed2024_20B_mbs4_80_v3`.
+- First-log invariant check:
+  - arm `B`, seed `2024`, loader seed rank0 `2024`.
+  - DDP world size `80`.
+  - optimizer `AdamW`.
+  - MoE backend `grouped`.
+  - `micro_batch_size=4`, `grad_accum_steps=6`, `ce_chunk_tokens=256`.
+  - bf16 CUDA build succeeded; rank0 free memory after optimizer was `64,163,414,016` bytes.
+- Latest checked step: 86 / 5,027.
+- Latest checked tokens: 338,165,760 / 19,766,968,320.
+- Latest checked throughput: 2,574,192 tok/s, MFU 9.27%.
+- Checkpoints: none yet; first checkpoint expected after the 25-minute cadence.
+- Dependent eval array `167289_[0-8]` remains `PENDING (Dependency)` and should start after `167284` exits `afterok`.
