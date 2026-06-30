@@ -1,3 +1,14 @@
+# H14.8 - resume requested, h4 B relaunch prepared
+
+- Elapsed: H14.8 experiment runtime. Operator resumed after the H14.7 resource-release pause; wall-clock calendar is no longer the original uninterrupted 24h schedule.
+- Active run: none yet. Preparing to submit h4 B seed 2024 from scratch because prior h4 B job `165375` was canceled at step 4,668 / 5,027 and saved no final checkpoint.
+- Step/tokens vs target: h4 A seed 2024 remains complete at step 5,027 / 19,766,968,320 tokens with final checkpoint `runs/pair_h4_A_seed2024_20B_mbs4_80_v2/ckpt_step005027.pt`. h4 B target remains same endpoint: 5,027 steps, 19,766,968,320 tokens, h4 shard stream.
+- Measured MFU and tok/s: latest completed comparable h4 A finished at 2.70M tok/s, MFU 9.73%; canceled h4 B was ~2.57-2.59M tok/s, MFU ~9.25-9.33%.
+- Node health/resources: no Engram Slurm jobs are running. Current cluster is mostly occupied by other workloads; only `cn30` is fully idle at resume time. Relaunch will request 10 full H100 nodes and may pend. Continue excluding `cn17`, `cn34`, `cn02`, and drained `cn10`.
+- Feedback loop: pulled `origin/main` and read new `feedback/review-20260629T1032Z.md`. Acknowledged: resume by relaunching h4 B seed 2024 from scratch with same h4 stream/world size/batch/optimizer/precision/5,027-step endpoint, enable periodic checkpoints, then run h5-disjoint knockout+slices+depth. Also acknowledge reviewer expectation that 20B unique may still be data-limited and inconclusive.
+- Relaunch script: added `scripts/slurm_h4_b_seed2024_resume.sh` with 10 nodes / 80 H100, bf16, AdamW, grouped MoE backend, `micro_batch_size=4`, `grad_accum=6`, `max_steps=5027`, and 25-minute checkpoints.
+- Next: push this resume snapshot, submit the h4 B v3 Slurm job, record/push the job id, then monitor and pull feedback every ~2h.
+
 # H14.7 - operator pause, H100 resources released
 
 - Elapsed: H14.7
