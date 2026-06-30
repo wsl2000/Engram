@@ -1,3 +1,13 @@
+# H15.4 - blocked on 80-H100 allocation
+
+- Elapsed: H15.4 experiment runtime.
+- Active run: h4 B job `167284` remains `PENDING (Resources)`; dependent eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: unchanged. No post-resume training tokens have run; no `runs/pair_h4_B_seed2024_20B_mbs4_80_v3` directory or checkpoint exists.
+- Slurm evidence: `167284` requests 10 nodes / 80 H100, excludes `cn02,cn10,cn17,cn34`, and backfill still estimates start `2026-07-01T21:32:39`.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Blocked status: this is the third consecutive resumed progress check with the same external blocker (required 80-H100 allocation unavailable). Queued B and dependent eval jobs are already in place, and no safe non-H100 work remains that improves the requested final state without risking the backfill. Resume when Slurm allocates `167284` or when the operator changes resource policy.
+- Next after unblocking: verify B first-step invariants, tok/s/MFU, and 25-minute checkpoint; after B final checkpoint, collect eval array `167289` outputs and update the h4 verdict artifacts.
+
 # H15.3 - waiting on resources; no extra tokenization
 
 - Elapsed: H15.3 experiment runtime.
