@@ -1,3 +1,14 @@
+# H20.5 - h4 B first checkpoint complete
+
+- Elapsed: H20.5 wall-clock from the resumed run.
+- Active run: h4 B job `167284` is still `RUNNING` on `cn[14-15,19,24-26,29-32]`; dependent eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: latest checked rank0 log is step 1,014 / 5,027, tokens 3,987,210,240 / 19,766,968,320.
+- Measured MFU and tok/s: latest checked step reports 2,563,131 tok/s and MFU 9.23%.
+- Checkpoints: first checkpoint completed at `runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step000952.pt`, size 28,027,733,867 bytes. Training continued past the checkpoint barrier.
+- Bug gate: added `scripts/slurm_h4_b0952_quick_gate.sh` for first-checkpoint TriviaQA/PopQA answer-NLL knockout and h5-disjoint Engram contribution diagnostics.
+- Feedback loop: no new feedback after the latest pull.
+- Next: submit quick gate job for checkpoint `000952`, then keep monitoring B to final. Final eval array `167289` remains queued for after B success.
+
 # H20.1 - h4 B v3 running
 
 - Elapsed: H20.1 wall-clock from the resumed run.
