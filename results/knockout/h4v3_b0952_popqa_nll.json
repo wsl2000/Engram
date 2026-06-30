@@ -1,0 +1,13 @@
+{
+  "task": "popqa",
+  "checkpoint": "runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step000952.pt",
+  "split": null,
+  "limit": 100,
+  "moe_backend": "grouped",
+  "engram_enabled": true,
+  "records": 100,
+  "mean_normal_nll": 9.95633460521698,
+  "mean_knockout_nll": 9.958045644760132,
+  "mean_delta_knockout_minus_normal": 0.0017110395431518554,
+  "positive_delta_frac": 0.6
+}

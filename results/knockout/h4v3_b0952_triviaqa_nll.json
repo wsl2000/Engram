@@ -1,0 +1,13 @@
+{
+  "task": "triviaqa",
+  "checkpoint": "runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step000952.pt",
+  "split": null,
+  "limit": 100,
+  "moe_backend": "grouped",
+  "engram_enabled": true,
+  "records": 100,
+  "mean_normal_nll": 4.587001770734787,
+  "mean_knockout_nll": 4.58309518456459,
+  "mean_delta_knockout_minus_normal": -0.003906586170196533,
+  "positive_delta_frac": 0.43
+}

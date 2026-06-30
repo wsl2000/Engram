@@ -1,3 +1,16 @@
+# H20.7 - h4 B quick gate complete
+
+- Elapsed: H20.7 wall-clock from the resumed run.
+- Active run: h4 B job `167284` is still `RUNNING`; quick gate job `167601` completed successfully (`0:0`, elapsed `00:03:20`); final eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: latest checked rank0 log is step 1,268 / 5,027, tokens 4,985,978,880 / 19,766,968,320.
+- Measured MFU and tok/s: latest checked step reports 2,568,808 tok/s and MFU 9.25%.
+- Checkpoints: first checkpoint `ckpt_step000952.pt` remains complete.
+- Quick-gate result: first-checkpoint answer-NLL knockout is weak/no-collapse. TriviaQA delta knockout-normal = `-0.0039065862`; PopQA delta = `+0.0017110395`. Diagnostics confirm nonzero Engram path: final hidden delta RMS `0.0362668246`, last-logit mean absolute delta `0.0367558546`, layer 6 contribution/hidden RMS ratio `0.0034090547`.
+- Interpretation: wiring is exercised/nonzero, but early factual knockout remains weak. Continue to final checkpoint and h5-disjoint final eval; do not claim verification from this early signal.
+- Results updated: raw `h4v3_b0952_*` files under `results/knockout/` and `results/diagnostics/`, plus aggregate `results/knockout.csv` and `results/gate_diagnostics.csv`.
+- Feedback loop: no new feedback after latest pull.
+- Next: keep monitoring B to final. After B success, final eval array `167289` should run automatically.
+
 # H20.6 - h4 B quick gate running
 
 - Elapsed: H20.6 wall-clock from the resumed run.

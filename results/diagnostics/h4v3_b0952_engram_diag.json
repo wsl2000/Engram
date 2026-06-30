@@ -1,0 +1,38 @@
+{
+  "checkpoint": "runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step000952.pt",
+  "arm": "B",
+  "seed": 2024,
+  "engram_enabled": true,
+  "moe_backend": "grouped",
+  "token_files": 32,
+  "eval_seed": 616161,
+  "num_batches": 4,
+  "batch_size": 1,
+  "final_hidden_delta_rms": 0.03626682457302049,
+  "last_logit_abs_delta_mean": 0.03675585460662842,
+  "last_logit_abs_delta_max": 0.375,
+  "layers": [
+    {
+      "layer": 2,
+      "tokens": 8192,
+      "alpha_mean": 0.9999844580888748,
+      "alpha_std": 0.0005176672198312684,
+      "alpha_gt_0_5_frac": 1.0,
+      "hidden_rms": 7.355541875134385,
+      "mem_rms": 0.007901033907542111,
+      "contribution_rms": 0.007898373938789593,
+      "contribution_hidden_rms_ratio": 0.001073799058297835
+    },
+    {
+      "layer": 6,
+      "tokens": 8192,
+      "alpha_mean": 0.9969046264886856,
+      "alpha_std": 0.04370662844328754,
+      "alpha_gt_0_5_frac": 0.997314453125,
+      "hidden_rms": 12.453837980491635,
+      "mem_rms": 0.04332693052433751,
+      "contribution_rms": 0.04245581514401721,
+      "contribution_hidden_rms_ratio": 0.003409054719558926
+    }
+  ]
+}
