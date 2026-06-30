@@ -1,3 +1,13 @@
+# H15.0 - h4 v3 eval array queued behind B
+
+- Elapsed: H15.0 experiment runtime.
+- Active run: h4 B Slurm job `167284` remains `PENDING (Resources)`. Dependent eval array `167289_[0-8]` is queued as `PENDING (Dependency)` with `afterok:167284`.
+- Step/tokens vs target: no post-resume training tokens yet. B target remains step 5,027 / 19,766,968,320 tokens on the h4 shard stream. Eval outputs will use h5-disjoint shards.
+- Measured MFU and tok/s: pending until `167284` starts.
+- Node health/resources: B requests 80 H100 across 10 nodes and is blocked on resources. Eval array requests 1 H100 / 220G / 3h per task and excludes the same known bad/drained nodes.
+- Feedback loop: latest feedback remains `feedback/review-20260629T1032Z.md`; no new feedback after the H14.9 push/pull.
+- Next: monitor `167284` for allocation. After it starts, verify first logs for arm B, seed 2024, AdamW, bf16, grouped MoE, 80 world size, `micro_batch_size=4`, `grad_accum=6`, tok/s/MFU, and 25-minute checkpoint creation. Eval array `167289` should then run automatically after B success.
+
 # H14.9 - h4 B v3 queued
 
 - Elapsed: H14.9 experiment runtime.
