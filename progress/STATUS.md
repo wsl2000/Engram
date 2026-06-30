@@ -1,3 +1,13 @@
+# H14.9 - h4 B v3 queued
+
+- Elapsed: H14.9 experiment runtime.
+- Active run: Slurm job `167284` (`engram-h4-B2024v3`) submitted and currently `PENDING (Resources)`.
+- Step/tokens vs target: job target is h4 B seed 2024 from scratch to step 5,027 / 19,766,968,320 tokens, matching h4 A endpoint and preserving paired seed 2024 comparison. No new training tokens have run yet after resume.
+- Measured MFU and tok/s: pending; use prior h4 B observed ~2.57-2.59M tok/s, MFU ~9.25-9.33% as ETA baseline once allocated.
+- Node health/resources: request is 10 nodes / 80 H100, `--mem=1800G`, `--time=04:00:00`, excludes `cn02,cn10,cn17,cn34`; Slurm reason is `Resources` because other workloads currently occupy most H100 nodes.
+- Feedback loop: latest pulled feedback remains `feedback/review-20260629T1032Z.md`, acknowledged in H14.8. No new feedback after the resume snapshot push.
+- Next: monitor job `167284`; when it starts, verify build/optimizer/first-step logs, tok/s, MFU, and first 25-minute checkpoint. After final checkpoint, queue h5-disjoint knockout+slices+depth evals and push/pull.
+
 # H14.8 - resume requested, h4 B relaunch prepared
 
 - Elapsed: H14.8 experiment runtime. Operator resumed after the H14.7 resource-release pause; wall-clock calendar is no longer the original uninterrupted 24h schedule.
