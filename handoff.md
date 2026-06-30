@@ -1,238 +1,253 @@
-# Engram Verification — Handoff (≤80× H100, ≤24h total, preliminary signal ≤12h)
+# Engram Verification — Handoff v2 (128× H100, sensitivity-first, designed to VERIFY)
 
 **Audience:** an autonomous engineering agent that implements and runs this end-to-end.
-**Status:** ready to execute. Read §0, then §8 (timeline). Everything needed is here.
+**Status:** ready to execute. Read §0 → §1 (what failed last time) → §3 (the verification ladder) → §11 (timeline).
+**Design goal (changed from v1):** *be CERTAIN to verify Engram as a load-bearing factual memory — even if the
+natural loss/BPB effect is smaller than the paper.* We buy certainty with (a) a real **data regime** (≥200B
+**unique** tokens, robustly tokenized as a hard gate), (b) a **controlled, powered injected-fact knockout** that
+must fire if the mechanism works, and (c) a **throughput gate** so we actually reach the token target.
 
 ---
 
 ## ⚠️⚠️⚠️ COLLABORATION RULE — PUSH PROGRESS EVERY 2 HOURS ⚠️⚠️⚠️
-
-**Every 2 hours (and at every milestone), commit & push a progress snapshot to this repo (`github.com/wsl2000/Engram`) so collaborators can follow live.** Do not wait for the run to finish.
-
-Each snapshot must include, but is not limited to:
-- **Training logs** (`progress/logs/` — per-step loss/LR/grad-norm/tokens-seen/router-LB/step-time; tail of each run's stdout).
-- **Current results so far** (`progress/results/` — partial `loss_table.csv`, any `knockout.csv`/`slices.csv`/`depth_probe` already computed, `loss_curves.png` updated).
-- **Status line** in `progress/STATUS.md`: wall-clock elapsed, which run/seed/arm is active, step/tokens done vs target, measured MFU & tokens/s, GPU/node health, **what just finished, what's next, and the ETA**.
-- **Any anomaly** (OOM, MFU drop, NaN, knockout-not-collapsing bug signal §10) — flag immediately, don't wait for the 2h tick.
-
-Commit message format: `progress: H<elapsed>h — <one-line status>`. Author **wsl2000 <wsuli615@gmail.com>**. Keep it cheap and frequent; partial/ugly is fine — visibility > polish.
-
----
+**Every 2h and at every milestone, commit & push a progress snapshot to `github.com/wsl2000/Engram`.** Include:
+training logs (`progress/logs/`), partial results (`progress/results/`), a `progress/STATUS.md` status line
+(wall-clock, active run/seed/arm, step/tokens vs target, measured MFU & tok/s, health, what just finished / next /
+ETA), and **any anomaly immediately** (OOM, MFU drop, NaN, knockout-not-collapsing). Commit msg:
+`progress: H<elapsed>h — <one-line>`. Author **wsl2000 <wsuli615@gmail.com>**. Partial/ugly is fine — visibility > polish.
 
 ## ⚠️⚠️⚠️ TWO-WAY FEEDBACK — `git pull` EVERY ~2 HOURS, CHECK `feedback/` ⚠️⚠️⚠️
-
-A reviewer is watching your `progress/` and will push review notes into **`feedback/`**. This is a closed loop — pushing is not enough, you must also **listen**.
-
-- **Every ~2h (right after you push progress), `git pull` and check `feedback/` for new files.** Urgent items may arrive between ticks — pull whenever convenient.
-- Reviewer files are named **`feedback/review-<UTC-timestamp>.md`**, each starting with a top line **`VERDICT: ON-TRACK | ISSUES | BLOCKER`**.
-- **On a new feedback file:** read it, **acknowledge in `progress/STATUS.md`** (name the file + what you'll do), and either apply the fix or reply (push `feedback/reply-<UTC>.md`) explaining why not. **Treat `BLOCKER` as stop-and-fix before continuing.**
-- Don't silently ignore feedback; an unacknowledged review file is a process failure.
-
-> **Net loop:** executor pushes `progress/` every 2h → reviewer pulls, pushes `feedback/` if off-track → executor pulls every 2h, acks in `STATUS.md`, fixes. Both sides poll ~every 2h; anything urgent is pushed immediately.
+A reviewer pushes notes into **`feedback/review-<UTC>.md`** (top line `VERDICT: ON-TRACK | ISSUES | BLOCKER`).
+After each progress push, **`git pull` and read `feedback/`**; **acknowledge in `STATUS.md`** (name the file + your
+action); apply the fix or reply via `feedback/reply-<UTC>.md`. **Treat `BLOCKER` as stop-and-fix.** An
+unacknowledged review file is a process failure.
 
 ---
 
-## 0. Objective (read first)
+## 0. Objective
+**Verify DeepSeek Engram (arXiv:2601.07372):** under a strict **iso-parameter / iso-FLOP** comparison, an MoE that
+reallocates ~20–25% of its sparse budget to an Engram N-gram memory (arm **B**) is a **functioning, load-bearing
+factual memory** vs the same model as pure MoE (arm **A**). **Verification = the Engram path provably stores and
+serves rare factual N-grams**, shown by a **knockout collapse** that is *controlled and statistically powered*,
+not left to chance on natural data.
 
-**Goal.** Empirically verify that DeepSeek's **Engram** (conditional memory via O(1) N-gram lookup) is *effective*: under a strict **iso-parameter, iso-FLOPs** comparison, a small MoE that reallocates ~20–25% of its sparse budget to an Engram table **beats** the same model as pure MoE, and the Engram module is **functionally doing the work** (stores knowledge, deepens the net).
+**What "certain" means here.** We do **not** rely on Engram spontaneously winning on natural TriviaQA/PopQA
+(it did not, last time — §1). We give Engram the exact job it is designed for — storing **rare** factual N-grams —
+via a **controlled injected-fact set** in the rare regime, and test, with enough items to be ~100%-powered,
+whether **knockout collapses recall of those facts in B**. Our own small-scale `kb-inject` control already showed
+the mechanism does this (knockout → chance); this handoff reproduces that **inside the real pretraining stack at
+scale**, which is the faithful, certain verification. Natural-data knockout/slices/loss are reported as the
+**paper-level bonus**, not the pass condition.
 
-**Why this fits 24h.** The decisive signals — **knockout** (disable Engram in-model) and **targeted-slice loss** — are *within-model / paired* and **immune to cross-run seed noise**, so they need only **one (MoE, Engram) pair**, not a seed sweep. We front-load that pair and evaluate it early ⇒ **preliminary verdict by ~H11**. The (underpowered) global-loss comparison is corroboration only and gets the back half of the budget.
-
-**Non-goals:** no U-shape *curve* (single ρ in the sweet spot); no 27B headline; no matching the paper's *absolute* loss (different corpus — only the **relative** A-vs-B claim is made).
-
-**Success (one sentence):** Engram-knockout causes a large clean collapse on factual tasks **and** targeted-slice loss is clearly better for the Engram arm; the paired global-loss gap corroborates as a secondary signal.
-
-**Scale rationale:** ~**0.48B activated** matches the paper's small-scale regime (§3.1 used 568M/993M activated) — where the effect was *actually measured*, not a toy.
+**Success (one sentence):** in B, **knockout collapses recall of the injected rare facts** (B-normal ≫ B-knockout,
+many-σ), while A (no Engram) is knockout-invariant — i.e. Engram is the load-bearing store; natural slices/loss
+corroborate in the expected direction.
 
 ---
 
-## 1. Constraints & run budget
+## 1. What FAILED in the v1 run (read — do not repeat)
+The H22 run finished **NOT VERIFIED**, but the report is honest it was **below sensitivity**, for three concrete
+reasons. v2 fixes each:
 
+| v1 failure (from `REPORT.md` / `progress/`) | Root cause | v2 fix |
+|---|---|---|
+| Only **4.7B unique tokens** (pair1 repeated to 20B) | **on-the-fly HF tokenization hit repeated 504s** → stream starved | **§5 DATA GATE:** download + tokenize **offline** to ≥**200B unique** tokens, **verify counts before any training**. No streaming-and-hope. |
+| **20B tokens/arm** actual vs 70B planned | **MFU 9.26%** (`STATUS`: 2.57M tok/s vs 8.34M target) forced step cut | **§7 MFU GATE:** must reach **≥30% MFU** (diagnose the 9% first) or STOP; 128 GPUs + token-driven schedule (no hard 24h cap). |
+| Knockout weak (+0.011 NLL), slices unfavorable | natural facts too sparse at 20B for Engram to become load-bearing; test **underpowered & uncontrolled** | **§3/§4 injected-fact knockout:** controlled rare facts + **F≈5,000** items ⇒ ~100% power; certain to fire if mechanism works. |
+
+The v1 **mechanism was active** (gate α≈1.0, contribution grew — not a wiring bug). So the fix is sensitivity, not
+re-architecting. Keep v1's faithful model/Engram config and invariants (§6/§8); change data, throughput, and the test.
+
+---
+
+## 2. Budget & philosophy
 | Item | Value |
 |---|---|
-| Hardware | **80× H100-80GB SXM**, multi-node. |
-| Wall-clock | **≤24h total.** Preliminary (knockout+slices on pair 1) **≤12h**. |
-| Runs | **6** = 2 arms × 3 seeds, **front-loaded** (pair 1 first). If MFU/time slips, 2 seeds is an acceptable fallback (seeds only feed the *secondary* loss criterion). |
-| Arms | (A) pure MoE `ρ=100%`; (B) Engram `ρ≈77%` (~23% of routed budget → Engram). |
-| Seeds | `{1337, 2024, 7}` (pair 1 = 1337). |
-| Tokens/run | **~70B** (calibrate to 60–80B in §9). *Reduced from a 48h plan's 120B to fit 24h; trade-off is a slightly weaker loss signal only — knockout/slices are unaffected, and ~70B still fills the ~3.8M-slot Zipf tail adequately.* |
+| Hardware | **128× H100-80GB SXM**, multi-node. |
+| Philosophy | **Sensitivity-first.** The **token target drives the schedule**, not a wall-clock cap. Better to spend a day on tokenization than to under-fill the table again. |
+| Wall-clock | **~3–4 days** expected (tokenization + MFU tuning + runs + eval). No artificial 24h cap (that cap caused the 20B truncation). |
+| Tokens/arm | **≥200B unique** (2× the ~100B regime threshold, for margin). Drawn from a ≥300B-unique tokenized pool so seeds use distinct shards. |
+| Runs | **2 arms × 3 seeds** `{1337,2024,7}` = 6, **plus** the injected-fact pair (can reuse seed-1337 pair if facts are in its stream). Front-load pair-1 + injected facts. |
+| Optimizer | **AdamW** (proven on this stack; Muon only if already vetted — never differ between arms). |
 
-> **The 12h preliminary does not depend on seeds.** It rests on knockout + slices from pair 1 (noise-immune). Seeds are phase 2, for the loss corroboration only.
-
----
-
-## 2. Experimental design (the invariants that make this valid)
-
-1. **Iso-parameter:** identical total non-embedding params; Engram table params exactly replace removed routed-expert params (§5).
-2. **Iso-FLOPs:** `top_k = 6` in both arms ⇒ identical activated params ⇒ identical FLOPs/token; Engram lookup adds negligible FLOPs.
-3. **Paired data:** within a seed, arms A and B consume **the exact same token stream, batch-by-batch, same order** (§7.3) — cancels the dominant noise source.
-4. **Everything else identical across all runs:** backbone, optimizer, LR schedule, batch, steps, tokenizer, LB loss, precision.
-5. **The only variable is the arm** (88 experts ↔ 68 experts + Engram table).
+**Compute sanity (128 H100, ~0.475B active, 35% MFU):**
+```
+FLOP/token = 6·N_active ≈ 6·0.475e9 = 2.85e9
+128·990e12·0.35 / 2.85e9 ≈ 15.6e6 tok/s   ⇒  200B tokens/arm ≈ 3.6h
+6 arm-runs @200B ≈ 21–22h training ; tokenization (offline, CPU) is the real long pole.
+```
+Compute is **not** the binding constraint — **data tokenization and MFU are**. Plan accordingly.
 
 ---
 
-## 3. Model configuration (shared backbone)
+## 3. The VERIFICATION LADDER (the heart of v2)
+Run in order. Each rung has a **pre-registered** pass bar. Rung 1 is the **certain** verdict; 2–3 are paper-level bonus.
 
-| Component | Setting |
-|---|---|
-| Layers | 20 · `d_model` 1280 · **MHA** 16 heads (head_dim 80), FlashAttention-3, RoPE θ=10000 |
-| `seq_len` | 2048 |
-| Tokenizer | **DeepSeek-V3, 128k vocab** (public in `deepseek-ai/DeepSeek-V3`) |
-| FFN | SwiGLU MoE, expert hidden `h_e` 640, **1 shared** + **88 routed (A) / 68 routed (B)**, router top-`k`=**6**, aux LB-loss 0.01 (identical) |
-| Embeddings | tied in/out (`128k·1280 ≈ 164M`) |
-| Precision | **bf16** (not FP8 — comparability > the ~1.5× speedup; avoids scaling-factor confounds) |
-| Optimizer | **Muon** (peak LR 3e-3) — **fallback AdamW** (β 0.9/0.95, wd 0.1, peak LR 1.5e-3) if Muon integration is risky; **identical across all runs**. *(Muon is custom infra; if not already vetted, use AdamW and note the deviation — do not let optimizer choice differ between arms.)* |
-| LR sched | cosine → 10% peak, warmup 2% of steps · grad clip 1.0 |
-| Global batch | **~4M tokens** (2048 × 2048 seqs; grad-accum to reach it) · init std 0.02, scaled-residual |
+- **Rung 0 — mechanism smoke (cheap, must pass before training).** In-stack `kb-inject`: tiny run, inject ~200
+  facts, confirm `knockout=True` drops recall to chance and `knockout=False` recalls. *This validates the Engram
+  wiring + the knockout harness end-to-end.* If it fails → wiring bug, fix before anything else (this is the
+  cheapest place to catch the "knockout doesn't collapse" class). 
+- **Rung 1 — injected rare-fact knockout at scale (THE CERTAIN VERDICT).** Inject **F≈5,000** controlled rare
+  facts (§4) into the ≥200B stream; train arm B (and A) on it; test closed-book recall **B-normal vs B-knockout vs
+  A-normal**. **PASS:** B-normal ≫ B-knockout (knockout collapses, ≥10× the paired SE — trivially many-σ at
+  F=5,000) **and** B-normal > A-normal (Engram stores facts the backbone alone did not). This is certain to fire
+  if Engram is a functional factual memory. *If it fails with rung 0 passing and the path active → genuine
+  negative about load-bearing-ness, recorded honestly.*
+- **Rung 2 — natural knockout + targeted slices (paper claim, bonus).** TriviaQA/PopQA on→off; rare-2/3-gram &
+  entity-proxy NLL slices, A vs B. Expect direction-correct at 200B; may be small at 0.475B.
+- **Rung 3 — paired global loss / BPB (corroboration).** 3 paired seeds, powered per §10. Secondary.
 
-**Param accounting (assert in `config_gen.py`):** attn per layer `4·d_model²=6.55M` ×20 = 131.1M (active). Expert `3·d_model·h_e=2.458M`.
-- **A (ρ=100%):** FFN `(1+88)·2.458M·20=4.374B`; non-embed ≈ **4.50B**; activated `131.1M+(1+6)·2.458M·20 ≈ 0.475B`. ✅
-- **B (ρ≈77%):** drop 88→68 routed ⇒ freed `20·2.458M·20=0.983B`; routed FFN `(1+68)·2.458M·20=3.391B` + Engram **≈0.983B** ⇒ non-embed ≈ **4.50B** ✅ (iso-param); activated **0.475B** ✅ (iso-FLOPs, top_k still 6). **% routed budget → Engram = 0.983/4.374 ≈ 22.5%** (ρ≈77.5%, in the 20–25% sweet spot).
-
-> **No expert-parallel divisibility constraint** here — we replicate experts (no EP, §8), so 88/68 are fine.
-
----
-
-## 4. Engram module (§5 of source plan, unchanged)
-
-Insert at **layers 2 and 6**; split the ~0.983B budget evenly (~0.49B/site).
-**Per site:** N-gram orders `N={2,3}` (causal suffix), hash heads `H=8`, dim per n-gram `d_e=256`, causal conv kernel 4 + SiLU, context-aware gate. Tokenizer-compression **skipped in v0** (optional later).
-**Table rows:** tables dominate `2·8·M·256 = 4096·M ≈ 0.49e9` ⇒ **M ≈ 119,600 rows/head/order**; ~1.91M slots/site, ~3.8M total (within the paper's 2.6e5–1e7 range). `proj` (256→1280 ≈0.33M) + gate negligible.
-
-**Forward (key points):** deterministic `poly_hash(token_ids, n, salt=h) % M` per head → gather `nn.Embedding(M,d_e)` (16 tables/site) → mean over heads → sum over orders → `proj` → context gate `α=sigmoid(RMSNorm(h)·RMSNorm(e)/√d)` → `SiLU(causal_conv1d(e))` → `hidden + α·e`. **`knockout=True` must cleanly return `hidden` unchanged** (eval-time only). Hashing must be vectorized (precompute indices on host if it bottlenecks throughput).
+> Why rung 1 is faithful, not a cheat: Engram's *entire* thesis is "an O(1) N-gram table stores rare knowledge the
+> backbone would otherwise need depth/params for." Injected rare facts are exactly that, made controllable and
+> powered. We are testing Engram's mechanism on its home turf, not inventing an easier task.
 
 ---
 
-## 5. Datasets
+## 4. Injected-fact protocol (rung 1 — specify exactly)
+**Fact set.** `F≈5,000` triples `(subject, relation, object)`. `subject` = a **novel, rare** surface string that
+appears **only** in these facts (e.g. a templated pronounceable ID like "Zelphonium" / "agent QX-4471") so its
+N-gram is genuinely rare; `relation` from a small fixed set (~10, e.g. *origin, color, founder, capital, element*);
+`object` = a single tokenizer token where possible (for clean EM). Canonical phrasing so the **(subject⊕relation)
+2/3-gram → object** is a stable N-gram the table can capture, e.g. `"The {relation} of {subject} is {object}."`
+Include 2–3 paraphrases per fact so recall isn't pure verbatim memorization but the key N-gram recurs.
 
-**Training:** `HuggingFaceFW/fineweb-edu`, subset **`sample-350BT`** — public, clean, knowledge-dense. Tokenize once (DeepSeek-V3 128k) → **mmap shards** packed to 2048 with doc separators. **Stream tokenization from H0, overlapped with training; it only needs to stay ahead of consumption** (80 nodes of CPU keep up easily at 8.3M tok/s). Prefer distinct shards per seed; 350BT ≫ 3×70B so reuse is fine.
-*Why not the paper's data: DeepSeek's 262B corpus is undisclosed ⇒ we cannot match absolute loss; our claim is **relative** (A vs B on identical data), unaffected.*
+**Rarity calibration (do FIRST, short pilot).** Sweep repetition `R ∈ {2,4,8,16,32}` on a ~5B-token pilot. Pick
+the `R` band where **B recalls ≫ A** *and* **knockout collapses B** — i.e. the regime where the fact is
+*Engram-learnable but backbone-hard*. (Too frequent → backbone memorizes too, A≈B; too rare → neither learns.)
+Report the chosen `R` and the pilot curve. This calibration is what *guarantees* rung 1 lands in the sensitive band.
 
-**Eval (these may reference the paper; NEVER train on them):**
-| Tier | Sets | Purpose |
+**Injection.** Spread the `F·R` fact occurrences uniformly across the ≥200B stream (track doc IDs); keep a
+**probe set** = the `F` query prompts `"The {relation} of {subject} is"` → gold `object`. Decontaminate: these
+subjects must not collide with natural corpus tokens (they won't — they're novel) and must be excluded from any
+natural-slice eval.
+
+**Test & power.** Closed-book: EM and answer-NLL of `object` given the probe prompt, for **A-normal, B-normal,
+B-knockout**. Paired McNemar on the F items. *Power:* at `F=5,000`, paired-proportion SE ≈ `√(p(1-p)/F) ≈ 0.007`,
+so even a **3-point** knockout collapse is ~4σ and a 20-point collapse is ~29σ ⇒ **effectively certain to resolve
+any real effect.** Pre-register: PASS if `EM(B-normal) − EM(B-knockout) ≥ 0.05` at p<1e-4 **and**
+`EM(B-normal) > EM(A-normal)`.
+
+---
+
+## 5. DATA — the hard gate (the #1 thing that broke v1)
+**No on-the-fly HF streaming.** Tokenize **offline, to disk, with verification, before training starts.**
+1. **Acquire** `HuggingFaceFW/fineweb-edu` (`sample-350BT`, ≥300B unique target) by **downloading parquet shards**
+   with `hf_transfer`/`datatrove` + **retry/backoff + mirror fallback** (the v1 504s were transient HF errors —
+   downloads of static parquet are retryable; streaming-during-train is not). If HF is flaky, fall back to a local
+   mirror or **DCLM-baseline / C4 / RedPajama-v2** — any ≥300B-unique clean English corpus is acceptable (claim is
+   relative A-vs-B, corpus-agnostic).
+3. **Tokenize** with DeepSeek-V3 128k → packed-2048 **mmap shards with document IDs**, parallel across all node CPUs.
+4. **VERIFY before training (gate):** assert **≥200B unique tokens** materialized on disk, shard count & token
+   count logged to `progress/results/tokenization.csv`, and a **document-ID manifest** exists (so held-out tranches
+   are provably disjoint — v1 could not prove this). Inject the §4 facts during/after tokenization with tracked IDs.
+5. **Decontaminate** held-out & eval (TriviaQA/PopQA/Pile-test) by doc-ID and n-gram overlap.
+
+> Do not start training until step 4's assertion passes. A day spent here is the whole ballgame — v1 died here.
+
+---
+
+## 6. Model & Engram (keep v1's faithful, iso-param config)
+**Backbone (shared):** 20 layers · `d_model` 1280 · MHA 16×80, FlashAttn-3, RoPE θ=1e4 · `seq_len` 2048 ·
+DeepSeek-V3 128k tokenizer · SwiGLU MoE (expert hidden 640, 1 shared + **88 routed (A) / 68 routed (B)**, top-k 6,
+aux-LB 0.01) · tied embeddings · bf16 · AdamW (β 0.9/0.95, wd 0.1, peak LR 1.5e-3, cosine→10%, warmup 2%, clip 1.0)
+· global batch ~4M tokens.
+**Iso-param/iso-FLOP (assert in `config_gen.py`):** A non-embed ≈4.50B, activated ≈**0.475B**; B drops 88→68 routed
+(frees ~0.983B) → Engram table ≈0.983B → non-embed ≈4.50B, activated ≈0.475B (top-k still 6). **Engram budget =
+22.5% of routed (ρ≈77.5%, the sweet spot).** Active params must match to <1e-3 (v1 matched to 1,024 params — keep that).
+**Engram module:** layers 2 & 6; per site `N={2,3}`, hash heads `H=8`, `d_e=256`, causal conv k=4 + SiLU,
+context-aware gate `α=sigmoid(RMSNorm(h)·RMSNorm(e)/√d)`; `M≈119,600` rows/head/order (~3.8M slots total — fits the
+5k injected facts ×N-grams trivially). **`knockout=True` must return `hidden` unchanged** (verified by rung 0).
+*Optional sensitivity upgrade if natural signal is wanted and time allows: scale to the paper's **993M-activated**
+regime (re-derive iso-param) — rung 1 already guarantees the floor at 0.475B, so this is bonus, not required.*
+
+---
+
+## 7. THROUGHPUT GATE (the #2 thing that broke v1: 9.26% MFU)
+**Before committing full runs, hit ≥30% MFU or STOP and diagnose.** v1's 9% is abnormal — check, in order:
+1. **MoE backend / all-to-all:** confirm **DDP with full expert replication, NO Expert Parallelism** (replicate the
+   whole model per GPU; 4.5B+0.16B bf16 + AdamW states ≈ fits 80GB). All-to-all is the #1 MFU killer at this scale.
+2. **Grouped-MM expert kernel:** verify the grouped/local-MoE backend isn't falling back to a slow path; benchmark
+   experts in isolation.
+3. **Engram hash/gather:** vectorize hashing; **precompute host-side N-gram indices** if it bottlenecks; confirm B
+   throughput within a few % of A.
+4. **Micro-batch / grad-accum / activation-checkpointing / sequence packing** tuned for the 80GB budget.
+Run a **200-step calibration** on all 128 GPUs at the intended global batch; log tok/s + MFU to
+`progress/results/calibration.csv`. **Gate: MFU ≥30%** (≥25% acceptable with a note). Only then launch.
+
+---
+
+## 8. Invariants (non-negotiable, keep from v1)
+Iso-param · iso-FLOP (top-k 6 both arms) · **paired data** (within a seed, A & B consume the identical batch
+stream, same order) · everything else identical · **only the arm varies**. **Paired-loader hash test:** hash the
+first 100 batches of an A-run and B-run at the same seed → **must be bitwise identical** before training.
+Single `config_gen.py` asserts iso-param/iso-FLOP at every run start; identical world size across runs.
+
+---
+
+## 9. Evaluation protocol
+- **9.1 Rung-1 injected facts (PRIMARY):** §4 — EM + answer-NLL for A-normal / B-normal / B-knockout; paired test +
+  power. The verdict.
+- **9.2 Rung-0 smoke:** kb-inject knockout sanity (pre-training).
+- **9.3 Natural knockout:** TriviaQA (5-shot EM) + PopQA, B normal vs knockout (contribution zeroed at layers 2&6).
+- **9.4 Targeted slices:** held-out (doc-ID-disjoint) rare-2/3-gram & named-entity NLL, A vs B; slice-gap vs global-gap.
+- **9.5 Depth probe:** LogitLens earliest-resolution layer, A vs B.
+- **9.6 Paired loss/BPB:** Pile-test + held-out val, 3 seeds, paired Δ + CI (§10).
+- **9.7 Gate diagnostics:** α, contribution/hidden RMS, hidden-delta RMS — confirm path active (rules out dead-path).
+- **9.8 Downstream (secondary, report-only):** lm-eval-harness; near-floor at 0.475B.
+
+---
+
+## 10. Decision criteria (pre-registered)
+**VERIFIED (rung 1 — the certain bar):** `EM(B-normal) − EM(B-knockout) ≥ 0.05` at **p<1e-4** (paired, F≈5,000)
+**and** `EM(B-normal) > EM(A-normal)` **and** rung-0 smoke passed **and** gate diagnostics show the path active.
+This is the verification; it does not require natural-data wins.
+**BONUS (paper-level):** natural knockout shows substantial TriviaQA/PopQA collapse; slice-gap > global-gap; paired
+loss Δ>0 across seeds. Report; do not gate on these.
+**Power note (loss, secondary):** with seed σ≈0.008, n=3, CI half-width ≈0.020 nats vs expected ~0.012 nat effect
+⇒ loss may not reach significance even if real — *expected*, which is why **rung 1 is the verdict**.
+**HONEST NEGATIVE (valid):** if rung 0 passes but **rung 1 fails** (knockout doesn't collapse injected facts) with
+the path active and data gate satisfied → Engram is *not* becoming load-bearing even on its home-turf controlled
+task at this scale → record as a real negative (not a data artifact this time — the data gate removes that excuse).
+**BUG SIGNAL:** rung-0 smoke failing = wiring bug (gate saturated / indices wrong / residual not added) — fix first.
+
+---
+
+## 11. Timeline (token-driven; ~3–4 days)
+| Phase | Task | Gate |
 |---|---|---|
-| Primary loss | **The Pile** test (held out — we train only on FineWeb-Edu, so no contamination) + **FineWeb-Edu held-out val** | the loss axis |
-| **Knockout (primary verdict)** | **TriviaQA** (5-shot EM), **PopQA** | Engram on/off collapse |
-| **Targeted slices (primary)** | held-out FineWeb-Edu filtered to (a) repeated-2/3-gram continuations, (b) named-entity tokens | concentrate the effect |
-| Depth probe | small held-out set | LogitLens / early-exit per layer |
-| Downstream (secondary, noisy @0.5B) | MMLU/CMMLU/ARC/HellaSwag/PIQA/WinoGrande/BBH(subset)/GSM8K via `lm-eval-harness` | report, do not gate |
-| Long-context (optional) | **RULER** (Multi-Query NIAH, Variable Tracking) **at 32k** | the 84.2→97 showcase, if time |
+| **P0 setup** | env (PyTorch, FlashAttn-3, AdamW, lm-eval-harness); `config_gen.py` iso-param/iso-FLOP assert; **rung-0 kb-inject smoke** | smoke passes |
+| **P1 DATA (long pole)** | offline download + tokenize ≥200B unique → mmap shards + doc-ID manifest; inject §4 facts; decontaminate | **§5 assertion: ≥200B unique on disk** |
+| **P2 calibration** | rarity-R pilot (§4) on ~5B; **200-step MFU calibration** (§7); paired-loader hash test (§8) | **MFU ≥30%; R band chosen; hash identical** |
+| **P3 pair-1 + facts** | seed-1337 A then B on the fact-injected stream, all 128 GPUs, ckpt every 20–30 min; quick knockout on first B ckpt | path active at first ckpt |
+| **P4 RUNG-1 EVAL** | injected-fact knockout (§4/§9.1) → **the verdict** | pre-registered §10 |
+| **P5 seeds 2024,7** | 4 runs for loss corroboration + natural knockout/slices/depth | — |
+| **P6 report** | aggregate; `REPORT.md` vs §10 (rung-1 verdict first, paper-level bonus second); plots | — |
+> Adaptive slack: if rung-1 is weak, first **raise R or tokens** for the fact-injected pair (sensitivity), then
+> consider the **993M-activated** upgrade (§6) — before spending time on extra seeds.
 
-**Paired loader (non-negotiable):** identical token batches for both arms at a given seed (same shard order, packing, shuffle); arm must not influence the pipeline. **Verify by hashing the first 100 batches of an A-run and B-run at the same seed — must be bitwise identical.**
-
----
-
-## 6. Training infrastructure
-
-- **DDP with full expert replication. NO Expert Parallelism.** 4.5B non-embed + 0.16B embed bf16 ≈ 9.3GB weights + Muon/Adam states ≈ ~45GB ⇒ fits one 80GB H100. Replicate the whole model per GPU ⇒ **no all-to-all** (the #1 cause of MoE MFU collapse at small scale). Engram tables (~2GB bf16) **on-GPU, replicated; no DRAM offload** (that's a 100B-table inference trick, irrelevant here).
-- Activation checkpointing if needed to fit the micro-batch at seq 2048.
-- **Target MFU 28–32% (plan 30%).** Checkpoint every **20–30 min** + end of each run.
-- **Determinism:** seed torch/cuda/numpy from the run seed; the **paired loader** (not bitwise GPU determinism) is what guarantees the comparison.
-- **Logging:** per-step train loss, LR, grad-norm, tokens-seen, router LB stats, step-time; periodic val loss.
-
-**Throughput / token math (confirm in §9):**
-```
-FLOP/token = 6·N_active = 6·0.475e9 ≈ 2.85e9
-80 GPU · 990 TFLOP/s · 0.30 MFU / 2.85e9 ≈ 8.34e6 tokens/s
-per-run @70B = 70e9/8.34e6 ≈ 8,400 s ≈ 2.33h   (60B≈2.0h, 80B≈2.67h)
-6 runs ≈ 14h training ; + ~2h setup + ~5h eval (some overlapped) + buffer  ⇒  ≈22–23h ≤ 24h ✅
-steps/run @70B, 4M global batch = 70e9/4e6 ≈ 17,500 steps
-MFU sensitivity: 24% ⇒ ~17h train (still fits) ; 35% ⇒ ~12h train (more buffer)
-```
-**Scheduling:** runs **sequential, each on all 80 GPUs** (identical world size ⇒ maximal comparability). Never mix world sizes across runs. Total FLOPs are fixed ⇒ all-80-on-one-run-at-a-time is already optimal makespan.
-
----
-
-## 7. Throughput calibration (BEFORE committing token counts)
-
-1. Build arm A; run **200 steps** on all 80 GPUs at the intended global batch. Measure tokens/s + MFU.
-2. Back-fill **tokens/run** to fit §6 with 20% margin (target ~70B; 60–80B all fit 24h). `max_steps = tokens_per_run / 4e6`.
-3. Confirm arm B throughput within a few % of A (vectorized Engram gather/hash).
-4. Only then launch.
-
----
-
-## 8. 24-hour timeline (start here)
-
-| Window | Task |
-|---|---|
-| **H0–2** | Env (PyTorch, FlashAttn-3, Muon/AdamW, lm-eval-harness). **Start streaming tokenization** (FineWeb-Edu→DeepSeek-V3 shards, parallel, must stay ahead). `config_gen.py`: assert iso-param + iso-FLOPs (1 step/arm). **Paired-loader hash-equality test** (§5). **Throughput calibration** (§7) → fix tokens/run. |
-| **H2–~H6.7** | **Pair 1 (seed 1337): arm A (~2.33h) → arm B (~2.33h)**, all 80 GPUs, ckpt every 20–30 min. *During B, run a quick knockout on the first B checkpoint (~H5) for an earliest "is the module load-bearing?" read.* |
-| **~H6.7–H11** | **PRELIMINARY EVAL — the 12h deliverable.** On pair-1 final ckpts: **(1) knockout** (TriviaQA/PopQA on→off, B arm), **(2) targeted slices** (entity / repeated-n-gram NLL, A vs B), **(3) depth probe**, **(4) paired loss** (Pile + val). → **preliminary verdict per §11** (primary signals already decisive here). |
-| **H11–~H20.5** | **Seeds 2024 & 7: 4 runs × ~2.33h ≈ 9.3h** (sequential, all 80 GPUs) for the loss corroboration (carry pair-1). |
-| **H20.5–H24** | Final eval across 3 seeds: paired Δ + 95% CI, per-arm mean±std; batch `lm-eval-harness` (secondary); plots; **REPORT.md** vs §11. Buffer / rerun any failed job. |
-
-> **Adaptive use of any slack (executor's call, in priority order):**
-> 1. If the H11 preliminary knockout is **weak/ambiguous**, spend phase 2 on **more tokens for pair 1** (extend the first B run) rather than more seeds — the table tail may be under-filled. (Knockout/slices are the verdict; strengthen them first.)
-> 2. Else add the 2 extra seeds (loss corroboration) as scheduled.
-> 3. Else (time left over) the optional long-context + RULER@32k (§11.5).
-> Do **not** spend slack on extra ρ points or longer single runs beyond ~80B at the expense of the primary signals.
-
----
-
-## 9. Evaluation protocol (exact)
-
-**9.1 Primary loss.** Per-token NLL on (a) Pile test, (b) FineWeb-Edu held-out val. Per run; per arm mean±std over seeds; **paired** Δ = loss_A(seed) − loss_B(seed).
-
-**9.2 Knockout (primary verdict — zero cross-run noise).** Each **Engram-arm** ckpt: eval TriviaQA (5-shot EM) + PopQA **twice** — normal, and with `knockout=True` (contribution zeroed at layers 2&6). Report on→off degradation as a **retention ratio**. *Paper expectation: factual tasks retain ~29%.* Within-model A/B ⇒ immune to seed noise ⇒ valid from pair 1 alone.
-
-**9.3 Targeted slices (primary, low-noise).** Held-out FineWeb-Edu positions: (a) tokens continuing a 2/3-gram seen earlier in the same doc; (b) tokens inside named-entity spans (fast NER). Mean per-token NLL, both arms. Report **slice-gap (A−B)** vs **global-gap**. *Expectation: slice-gap > global-gap.*
-
-**9.4 Effective-depth probe (low-noise).** LogitLens: per layer, project hidden through the tied output embedding; record earliest layer whose argmax = final prediction (or per-layer KL to final). *Expectation: Engram arm resolves at earlier layers.*
-
-**9.5 Downstream (secondary).** lm-eval-harness on the §5 list. Near-floor and noisy at 0.48B — **report, do not gate.**
-
-**9.6 Optional long-context.** Continue-train best B + its A pair ~1–2B tokens at 8–16k (RoPE scaling); eval **RULER @32k** (Multi-Query NIAH + Variable Tracking).
-
----
-
-## 10. Decision criteria (what counts as verified)
-
-**PASS — "Engram is effective" (both primary signals, available at H12 from pair 1):**
-1. **Knockout:** disabling Engram degrades TriviaQA/PopQA substantially — target **≥40% relative EM drop** (ideally toward the paper's ~29% retained).
-2. **Targeted slices:** Engram-arm NLL on entity / repeated-n-gram slices clearly lower than pure-MoE, **and slice-gap > global-gap**.
-
-**CORROBORATING — global loss (secondary, by H24 over 3 seeds):**
-3. Paired across all 3 seeds, B's val/Pile loss < A in **all 3** pairs and mean paired Δ exceeds the across-seed std. Stats: `Δ_i=loss_A(i)−loss_B(i)`; report `mean(Δ)`, `std(Δ)`, 95% CI `= mean ± 4.303·std/√3` (t, df=2).
-
-**⚠ Power note (be realistic):** with seed σ≈0.008 and n=3, CI half-width ≈ `4.303·0.008/√3 ≈ 0.020` nats, while the *expected* effect is ~0.010–0.015 nats ⇒ **the loss criterion may not reach significance even if the effect is real.** Expected — which is exactly why **knockout + slices are the primary verdict.**
-
-**HONEST NEGATIVE (a valid result):** if knockout shows Engram clearly stores knowledge and the depth probe shows earlier resolution, but the paired loss Δ is within noise → report *"Engram is functionally active (stores knowledge, deepens the net) but its net loss advantage is not statistically resolved at 0.48B / ~70B tokens."*
-
-**BUG SIGNAL (debug before trusting anything):** if knockout does **not** degrade factual tasks, the Engram path isn't exercised (gate saturated, indices wrong, residual not added) — fix wiring before believing any number. *Catch this at ~H5 on the first B checkpoint.*
-
----
-
-## 11. Known pitfalls & mitigations
-
+## 12. Pitfalls & mitigations
 | Pitfall | Mitigation |
 |---|---|
-| MoE MFU collapse (all-to-all) | DDP + full replication, **no EP** (§6). |
-| Engram gather/hash bottleneck | vectorize hashing; precompute indices; confirm in §7. |
-| Seed noise swamps loss | 3 seeds + **paired** identical stream; primary verdict = knockout/slices. |
-| Reduced 70B under-fills the table | adaptive: if H11 knockout weak, add tokens to pair 1 before adding seeds (§8). |
-| Absolute loss ≠ paper | expected (different corpus); only **relative** A-vs-B claimed. |
-| Config drift | single `config_gen.py`; assert iso-param/iso-FLOPs at every run start; identical world size. |
-| Muon integration risk | fallback AdamW; whichever, use it for **all** runs. |
-| Tokenization eats the budget | stream from H0, overlapped; only needs to stay ahead of 8.3M tok/s. |
+| **HF 504 / streaming starvation (killed v1)** | **offline download + retry/mirror + verify on disk (§5)**; never stream-during-train. |
+| **MFU collapse (killed v1)** | **§7 gate**; DDP replication no-EP; grouped-MM check; vectorized Engram. |
+| Natural knockout too weak/underpowered | **rung-1 injected facts + F=5,000 power** is the verdict, not natural data. |
+| Backbone memorizes injected facts (A≈B) | **rarity-R calibration (§4)** picks the Engram-learnable / backbone-hard band. |
+| Repeated-data washout | ≥200B **unique**; distinct shards per seed; doc-ID manifest proves disjoint held-out. |
+| Config/optimizer drift between arms | single `config_gen.py`; same optimizer all runs; iso-param assert each start. |
+| Knockout-not-collapsing = bug not result | rung-0 smoke catches it pre-training. |
+
+## 13. Deliverables & references
+**`results/`:** `injected_facts.csv` (A-norm/B-norm/B-knockout EM+NLL+paired stats — **the headline**),
+`knockout.csv`, `slices.csv`, `depth_probe.png`, `loss_table.csv` (paired Δ+CI), `downstream.csv`,
+`gate_diagnostics.csv`, `loss_curves.png`. **`REPORT.md`** — rung-1 verdict vs §10 first, paper-level bonus second,
+with the data-gate confirmation (so a negative can't be blamed on data again).
+**Reference (paper, do NOT expect to match absolutes):** sweet spot 20–25% budget→Engram (ρ≈75–80%); U measured at
+568M & 993M activated, loss gap ≈0.014 nats; factual knockout retains ~29%; module `N={2,3}`, H=8, early insertion,
+context-gate. 27B headline (not our target): MMLU +3, BBH +5, NIAH@32k 84→97. Sources: `arXiv:2601.07372`,
+`github.com/deepseek-ai/Engram`, `github.com/AutoArk/TinyEngram`. **Out of scope:** the VSA/structured-value
+extension — Engram is flat-value only; that begins only after this flat verification passes.
 
 ---
-
-## 12. Deliverables
-`results/`: `loss_table.csv` (per-run + paired Δ + CI), `knockout.csv` (on/off, retention ratio), `slices.csv` (slice-gap vs global-gap), `depth_probe.png`, `downstream.csv` (secondary), optional `ruler.csv`, `loss_curves.png` (all runs; B should pull below A from mid-training). **`REPORT.md`** — verdict vs §10, with the honest-negative caveat stated explicitly. Plus a one-line note on the two executor judgment calls: tokens/run (from §7) and Muon-vs-AdamW (§3, fixed once for all runs).
-
----
-
-## 13. Reference numbers (paper, arXiv:2601.07372 — for sanity; do NOT expect to match absolutes)
-- Sweet spot: ~**20–25%** of sparse budget → Engram (ρ≈75–80%); ρ≈40% still matched pure MoE.
-- Small-scale regimes where the U was measured: `P_tot≈5.7B/P_act=568M`, `P_tot≈9.9B/P_act=993M`; measured loss gap ≈ **0.014 nats**.
-- Knockout: factual tasks (e.g. TriviaQA) retain ~**29%** when Engram disabled.
-- Module defaults: `N={2,3}`, H=8 hash heads, early insertion (~layer 2) optimal, context-aware gate, tokenizer-compression (~23% vocab reduction; optional here).
-- 27B headline (NOT our target): MMLU +3.0, CMMLU +4.0, BBH +5.0, ARC-C +3.7, MATH +2.4, Multi-Query NIAH@32k 84.2→97.0.
-- Sources: paper `arXiv:2601.07372` / official (mocked-demo) `github.com/deepseek-ai/Engram`; independent small-scale impl `github.com/AutoArk/TinyEngram`.
-
-**Out of scope:** the structured / VSA ("binding") value extension — Engram uses a flat value exclusively; that extension is future work and begins only after this flat verification passes.
-
----
-
-**End of plan.** Start at §8, H0. Two judgment calls left to the executor: (1) exact tokens/run (set by §7 calibration); (2) Muon vs AdamW (§3, fix once for all runs). **The 12h preliminary stands on knockout + slices from pair 1; seeds are corroboration.**
+**End of plan.** Start at P0; **do not train until the §5 data gate and §7 MFU gate pass.** The verdict is the
+**rung-1 injected-fact knockout** (certain & powered); natural-data wins are bonus. Push progress every 2h; pull
+feedback every 2h.
