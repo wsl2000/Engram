@@ -1,3 +1,13 @@
+# H15.2 - queue topology alternatives rejected
+
+- Elapsed: H15.2 experiment runtime.
+- Active run: h4 B job `167284` remains `PENDING (Resources)`; eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: unchanged; no post-resume training tokens yet.
+- Queue check: tested alternative 80-GPU topologies with `sbatch --test-only` only. 20x4 estimated `2026-07-06T14:39:41`, 16x5 estimated `2026-07-03T18:01:28`, and 40x2 was unavailable. The current queued 10x8 job has the best real backfill estimate (`2026-07-01T21:32:39Z` from the earlier `squeue --start` check).
+- Decision: keep `167284` unchanged. This preserves the successful h4 A launch pattern and avoids changing topology without a queue benefit.
+- Feedback loop: no new feedback after pull; test-only job ids were verified absent from `squeue`.
+- Next: wait for `167284` allocation, then monitor first-step invariants and checkpoint creation.
+
 # H15.1 - h4 B waiting on Slurm backfill
 
 - Elapsed: H15.1 experiment runtime.
