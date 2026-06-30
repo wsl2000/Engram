@@ -13,7 +13,7 @@
 ---
 
 ## ▶ DEPLOYMENT SCOPE — what you (the remote) build & run (start here)
-**None of build items 1–3 exist in the repo today — confirmed by code audit. Budget to build them; do not assume they exist.**
+**Build items 1–5 are not-yet-built (1–3 are net-new code; 4–5 are fixes/ops on partial code) — confirmed by code audit. Budget to build them; do not assume they exist.**
 **BUILD (details in the cited sections):**
 1. **Tier-1 injected-fact apparatus + rung-0 `kb-inject` smoke** (§3/§4) — single-token opaque subjects mined from the DeepSeek-V3 vocab, large single-token object pool, paraphrases preserving the key n-gram, a negative-control fact class, stream injector with doc-IDs, probe builder, paired answer-NLL + McNemar, **freeze-R logic** (R value from the remote A-only pilot). *This is the certain-verdict apparatus and it does not exist yet (only `write_synthetic_tokens` random tokens).*
 2. **Offline data pipeline** (§6) — parquet `snapshot_download`+`hf_transfer` (resumable) → **local-file tokenizer (NOT `streaming=True`)** → packed-2048 **uint32** shards + **doc-ID manifest** → **≥200B-on-disk gate**. *Replaces the current streaming tokenizer that 504'd v1 to death.*
@@ -97,9 +97,10 @@ At a stretch 25%: ≈6.8h. **Compute is fine; the binding constraints are the da
 **Tier-1 — injected-fact POSITIVE CONTROL (certain; §4).** Inject `F≈5,000` controlled rare facts; test recall
 A-normal / B-normal / B-knockout. The clean, non-circular evidence is the **triple**: `A-normal ≈ chance`,
 `B-normal ≫ chance`, `B-knockout ≈ chance ≈ A-normal` — Engram provides a recall capability the iso-param backbone
-lacks, localized to the table. **Runs on a REDUCED budget at whatever MFU** (facts are ~1e-5 of the stream → A
-stays at chance even at small token counts and 9% MFU), so Tier-1 is **immune to the throughput/data problems that
-killed v1.** **R is frozen pre-hoc from arm-A difficulty only (§4) — no tuning toward PASS** (kills the HARKing).
+lacks, localized to the table. **Runs on a small PRE-GATE budget — ~20B tokens/arm (far below the §6 ≥200B gate),
+at whatever MFU** (facts are ~1e-5 of the stream → A stays at chance even at ~20B tokens and 9% MFU), so Tier-1 is
+**immune to the throughput/data problems that killed v1.** *(Tier-1 reuses items 1–2's downloader/tokenizer/injector
+at this small scale — it does NOT wait on the ≥200B gate or the MFU gate.)* **R is frozen pre-hoc from arm-A difficulty only (§4) — no tuning toward PASS** (kills the HARKing).
 - *Rung-0 (pre-train smoke, must pass & be committed):* the in-stack `kb-inject` (replicate the separate
   small-scale control from the `Compositional_Generalization` repo — *which is not in this repo, so build & commit
   the artifact here*): ~200 facts, confirm `knockout=True` → chance, `knockout=False` → recall, and assert
@@ -139,8 +140,9 @@ a 5-pt knockout collapse at F=5,000 ⇒ b≈250,c≈0 ⇒ z≈√250≈**16σ**.
 constraints are *effect existence* and *EM off the floor*, both handled above.
 
 **PASS (Tier-1, pre-registered):** (a) `NLL(B-knockout) − NLL(B-normal) > 0` at p<1e-4 (paired) **and** EM collapse
-≥0.05; **and** (b) anti-circularity: `EM(B-normal) − EM(A-normal) ≥ [margin] at p<1e-4` (paired) — **a margin, not
-just ">"**; **and** (c) the negative-control class shows a clearly smaller B−A gap. **FAIL is a real negative** if
+≥0.05; **and** (b) anti-circularity: `EM(B-normal) − EM(A-normal) ≥ 0.20 at p<1e-4` (paired) — **a pre-hoc margin,
+not just ">"** (from the B-normal EM ≥0.3 calibration target vs A≈floor; freeze it before the registered run); **and**
+(c) the negative-control fact class shows a B−A gap **< half** the main-class B−A gap. **FAIL is a real negative** if
 rung-0 passed (apparatus works) — record, do **not** re-tune R.
 
 ---
@@ -167,11 +169,13 @@ rung-0 passed (apparatus works) — record, do **not** re-tune R.
    IDs in the manifest** (v1's manifests lacked doc-IDs → couldn't prove held-out disjointness; build it now).
    Measured tokenize throughput ≈17.8M tok/s on 4 nodes ⇒ 300B ≈ **1.5–4.7h** *if not interrupted* (now it won't be).
 3. **GATE (hard):** assert **≥200B unique tokens on disk** + shard/token counts logged + doc-ID manifest present,
-   **before any training**. Inject §4 facts with tracked IDs. Decontaminate eval/held-out by doc-ID + n-gram.
+   **before any Tier-2 training**. Inject §4 facts with tracked IDs. Decontaminate eval/held-out by doc-ID + n-gram.
 4. **Disk:** budget **~2.5–3 TB** for data (pool + tokenized). "Distinct shards per seed" for 3×200B would need a
    600B pool (2.4 TB) — either provision it or **document controlled reuse** (acceptable; note it).
 
-> Do not train until step 3 asserts. This is where v1 died; it is unbuilt; treat as ~0.5–1 day of real work.
+> Do not start **Tier-2** training until step 3 asserts. (Tier-1 §3/§4 trains on a small **pre-gate** build — items
+> 1–2's downloader/tokenizer/injector at ~20B tokens, *without* the ≥200B gate — so it runs first regardless.) This
+> is where v1 died; it is unbuilt; treat as ~0.5–1 day of real work.
 
 ## 7. THROUGHPUT — BUILD the real MFU levers (the #2 killer)
 v1 hit **9.76%** with the *entire* v2 §7 list already done (no-EP DDP, `torch._grouped_mm`, mbs maxed at 4). The
@@ -258,4 +262,4 @@ early insertion, context-gate. Sources: paper; `github.com/deepseek-ai/Engram`; 
 ---
 **End v3.** The verdict is **two-tier**: Tier-1 (injected facts) is the *certain* sensitivity control — build it,
 freeze R, run it cheap; Tier-2 (natural NLL) is the *falsifiable* paper-claim test — build the data/MFU stack
-first. **Do not train until §6 data-gate and §7 MFU-gate pass; do not call Tier-1 "verification of the paper."**
+first. **Do not start TIER-2 training until §6 data-gate and §7 MFU-gate pass (Tier-1 runs PRE-GATE first, §3/§4); do not call Tier-1 "verification of the paper."**
