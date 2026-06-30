@@ -1,3 +1,13 @@
+# H19.4 - still pending; backfill slipped
+
+- Elapsed: H19.4 wall-clock from the resumed run; no post-resume training tokens have run.
+- Active run: h4 B job `167284` remains `PENDING (Resources)`; dependent eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: unchanged. Target remains B seed 2024, h4 stream, step 5,027 / 19,766,968,320 tokens. No B v3 output directory or checkpoint exists.
+- Slurm evidence: `167284` still requests 10 nodes / 80 H100 and excludes `cn02,cn10,cn17,cn34`. Backfill estimate slipped to `2026-07-02T04:43:08Z`.
+- Queue alternatives: rechecked valid 80-GPU topologies with `sbatch --test-only`; already queued 10x8 remains earliest. 20x4 and 16x5 are later. An accidental 13x7 probe is invalid for the 80-GPU invariant and was not used.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Next: keep `167284` queued; once allocated, verify first-step invariants, tok/s/MFU, and 25-minute checkpoint creation.
+
 # H15.4 - blocked on 80-H100 allocation
 
 - Elapsed: H15.4 experiment runtime.
