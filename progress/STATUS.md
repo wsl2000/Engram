@@ -1,3 +1,13 @@
+# H21.4 - h4 B third checkpoint complete
+
+- Elapsed: H21.4 wall-clock from the resumed run.
+- Active run: h4 B job `167284` is still `RUNNING` on `cn[14-15,19,24-26,29-32]`; final eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: latest checked monitor state is step 2,872 / 5,027, tokens 11,293,163,520 / 19,766,968,320.
+- Measured MFU and tok/s: latest checked step reports 2,560,055 tok/s and MFU 9.22%; steady throughput remains about 2.57M tok/s.
+- Checkpoints: `ckpt_step000952.pt`, `ckpt_step001907.pt`, and `ckpt_step002863.pt` are complete, each 28,027,733,867 bytes. Training continued past the third checkpoint barrier.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Next: keep monitoring B toward final step 5,027. Expected final checkpoint is about 55 minutes from this check if current throughput holds; dependent final eval array should start automatically after B exits successfully.
+
 # H21.0 - h4 B second checkpoint complete
 
 - Elapsed: H21.0 wall-clock from the resumed run.
