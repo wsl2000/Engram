@@ -2,3 +2,6 @@ seed,eval,arm,loss,tokens,checkpoint
 1337,fineweb_edu_h4_global,A,2.9724469110369682,32768,runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step005027.pt
 1337,fineweb_edu_h4_global,B,2.975272014737129,32768,runs/pair1_B_seed1337_final5027_mbs4_80/ckpt_step005027.pt
 1337,fineweb_edu_h4_global,A_minus_B,-0.0028251037001609802,32768,paired
+2024,fineweb_edu_h5_global,A,2.7372745275497437,32768,runs/pair_h4_A_seed2024_20B_mbs4_80_v2/ckpt_step005027.pt
+2024,fineweb_edu_h5_global,B,2.747317135334015,32768,runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step005027.pt
+2024,fineweb_edu_h5_global,A_minus_B,-0.01004260778427124,32768,paired

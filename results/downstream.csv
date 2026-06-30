@@ -1,0 +1,5 @@
+seed,checkpoint,task,metric,records,normal,knockout,delta_knockout_minus_normal,retention_ratio
+1337,b5027,triviaqa,5shot_em,100,0.0,0.0,0.0,
+1337,b5027,popqa,5shot_em,100,0.0,0.0,0.0,
+2024,h4v3_b5027,triviaqa,5shot_em,100,0.0,0.0,0.0,
+2024,h4v3_b5027,popqa,5shot_em,100,0.0,0.0,0.0,

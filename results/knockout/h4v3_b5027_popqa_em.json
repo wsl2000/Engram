@@ -1,0 +1,14 @@
+{
+  "task": "popqa",
+  "checkpoint": "runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step005027.pt",
+  "arm": "B",
+  "seed": 2024,
+  "engram_enabled": true,
+  "moe_backend": "grouped",
+  "records": 100,
+  "num_shots": 5,
+  "max_new_tokens": 16,
+  "normal_em": 0.0,
+  "knockout_em": 0.0,
+  "retention_ratio": null
+}

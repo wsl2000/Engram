@@ -1,3 +1,18 @@
+# H22.4 - final eval complete; report drafted
+
+- Elapsed: H22.4 wall-clock from the resumed run.
+- Completed jobs: h4 B job `167284` completed `0:0`; eval array `167289_0..8` completed `0:0`.
+- Step/tokens vs target: B final rank0 log reached step 5,027 / 5,027, tokens 19,766,968,320 / 19,766,968,320.
+- Measured MFU and tok/s: B final step reported 2,571,946 tok/s and MFU 9.26%; run held about 2.57M tok/s.
+- Final checkpoint: `runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step005027.pt`, size 28,027,733,867 bytes.
+- Primary knockout final: TriviaQA answer-NLL delta knockout-normal `+0.0109805815`, positive-delta frac 0.53; PopQA answer-NLL delta `+0.0349384117`, positive-delta frac 0.58. TriviaQA/PopQA 5-shot EM remains 0.0 normal and 0.0 knockout.
+- Primary slices final: h5 A-B global `-0.0100426078`, repeated-ngram `-0.0023399625`, entity-proxy `-0.0472175935`; B is worse on all three measured slices.
+- Depth/diagnostics final: B mean earliest layer is 0.0283 layer earlier but median is tied at 19; Engram path remains nonzero with final hidden delta RMS 0.0649173 and layer-6 contribution/hidden RMS ratio 0.0121942.
+- Verdict drafted in `REPORT.md`: NOT VERIFIED. Engram is wired/nonzero, but knockout is weak, targeted slices fail, and secondary loss does not support B. This is not a PASS; report as an honest negative/data-limited result rather than manufacturing a conclusion.
+- Results updated: aggregate tables, raw h4v3 final knockout files, `results/downstream.csv`, `results/loss_curves.csv`, `results/loss_curves.png`, and `results/depth_probe.png`.
+- Feedback loop: latest pull had no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Next: final commit/push this report and result bundle, then pull/check feedback and verify no Engram Slurm jobs remain.
+
 # H22.3 - h4 B final complete; final eval running
 
 - Elapsed: H22.3 wall-clock from the resumed run.
