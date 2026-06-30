@@ -1,0 +1,19 @@
+{
+  "checkpoint": "runs/pair_h4_A_seed2024_20B_mbs4_80_v2/ckpt_step005027.pt",
+  "arm": "A",
+  "seed": 2024,
+  "engram_enabled": false,
+  "knockout": false,
+  "moe_backend": "grouped",
+  "token_files": 32,
+  "eval_seed": 424242,
+  "num_batches": 16,
+  "batch_size": 1,
+  "entity_slice_method": "capitalized_token_proxy",
+  "global_nll": 2.7372745275497437,
+  "global_tokens": 32768,
+  "repeat_ngram_nll": 1.0668150529275253,
+  "repeat_ngram_tokens": 6052,
+  "entity_proxy_nll": 4.245794314964145,
+  "entity_proxy_tokens": 3264
+}

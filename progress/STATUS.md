@@ -1,3 +1,16 @@
+# H22.3 - h4 B final complete; final eval running
+
+- Elapsed: H22.3 wall-clock from the resumed run.
+- Completed run: h4 B job `167284` completed successfully (`COMPLETED`, exit `0:0`, elapsed `02:15:48`) on `cn[14-15,19,24-26,29-32]`.
+- Step/tokens vs target: final rank0 log reached step 5,027 / 5,027, tokens 19,766,968,320 / 19,766,968,320.
+- Measured MFU and tok/s: final logged step reports 2,571,946 tok/s and MFU 9.26%; run held about 2.57M tok/s steady throughput.
+- Checkpoints: final checkpoint `runs/pair_h4_B_seed2024_20B_mbs4_80_v3/ckpt_step005027.pt` is complete at 28,027,733,867 bytes, along with periodic checkpoints 000952/001907/002863/003820/004777.
+- Final eval array: dependency released and `167289_0..8` started automatically. At latest check, tasks 4-8 completed (`0:0`) and tasks 0-3 are still running.
+- Completed partial eval: h5-disjoint slices/depth/diagnostics are written. Slice NLLs: A global 2.7372745 vs B 2.7473171; A repeat-ngram 1.0668151 vs B 1.0691550; A entity-proxy 4.2457943 vs B 4.2930119. Depth: A mean earliest layer 17.09375 / median 19, B mean 17.06543 / median 19. B final Engram diagnostics: final hidden delta RMS 0.0649173, last-logit mean abs delta 0.0961437, layer-6 contribution/hidden RMS ratio 0.0121942.
+- Interpretation: Engram path remains nonzero and stronger than early h4 quick-gate, but h5 slices do not currently favor B. Do not update the verdict until final TriviaQA/PopQA knockout and EM tasks 0-3 finish.
+- Feedback loop: pulled `origin/main`; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Next: wait for tasks 0-3, aggregate final h4 results, update `REPORT.md`/result tables, push, then pull/check feedback.
+
 # H22.1 - h4 B fifth checkpoint complete
 
 - Elapsed: H22.1 wall-clock from the resumed run.
