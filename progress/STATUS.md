@@ -1,3 +1,14 @@
+# H20.6 - h4 B quick gate running
+
+- Elapsed: H20.6 wall-clock from the resumed run.
+- Active run: h4 B job `167284` is still `RUNNING`; quick gate job `167601` is `RUNNING` on `cn06`; final eval array `167289_[0-8]` remains `PENDING (Dependency)`.
+- Step/tokens vs target: latest checked rank0 log is step 1,082 / 5,027, tokens 4,254,597,120 / 19,766,968,320.
+- Measured MFU and tok/s: latest checked step reports 2,579,384 tok/s and MFU 9.29%.
+- Checkpoints: first checkpoint `ckpt_step000952.pt` is complete and is being evaluated by quick gate job `167601`.
+- Bug gate: `167601` runs first-checkpoint TriviaQA/PopQA answer-NLL knockout plus h5-disjoint Engram gate/contribution diagnostics using `scripts/slurm_h4_b0952_quick_gate.sh`.
+- Feedback loop: no new feedback after latest pull.
+- Next: monitor quick gate `167601` for outputs while B continues toward final checkpoint; final eval array `167289` remains queued after B success.
+
 # H20.5 - h4 B first checkpoint complete
 
 - Elapsed: H20.5 wall-clock from the resumed run.
