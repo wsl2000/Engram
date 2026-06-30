@@ -12,6 +12,20 @@
 
 ---
 
+## ▶ DEPLOYMENT SCOPE — what you (the remote) build & run (start here)
+**None of build items 1–3 exist in the repo today — confirmed by code audit. Budget to build them; do not assume they exist.**
+**BUILD (details in the cited sections):**
+1. **Tier-1 injected-fact apparatus + rung-0 `kb-inject` smoke** (§3/§4) — single-token opaque subjects mined from the DeepSeek-V3 vocab, large single-token object pool, paraphrases preserving the key n-gram, a negative-control fact class, stream injector with doc-IDs, probe builder, paired answer-NLL + McNemar, **freeze-R logic** (R value from the remote A-only pilot). *This is the certain-verdict apparatus and it does not exist yet (only `write_synthetic_tokens` random tokens).*
+2. **Offline data pipeline** (§6) — parquet `snapshot_download`+`hf_transfer` (resumable) → **local-file tokenizer (NOT `streaming=True`)** → packed-2048 **uint32** shards + **doc-ID manifest** → **≥200B-on-disk gate**. *Replaces the current streaming tokenizer that 504'd v1 to death.*
+3. **MFU levers** (§7) — **`torch.compile` + fused linear-CE** (Liger/cut-cross-entropy; the 128k-vocab chunked-CE is the OOM/MFU bottleneck). *Neither is in the repo.*
+4. **Spec-drift fixes** (§8) — add **RoPE** (model is currently NoPE); compute the iso-FLOP delta (hard-coded 0).
+5. **Ops** (§12) — checkpoint rotation + disk pre-write check + node pre-flight + auto-resume (v1 crashed on a full disk).
+
+**RUN (in order):** rung-0 smoke → **Tier-1** (cheap, any MFU — the *certain* verdict) → pass **data gate ≥200B** + **MFU gate ≥18–20%** → **Tier-2** natural NLL, 3 seeds (the *falsifiable paper claim*) → `REPORT.md`.
+**VERDICT framing:** Tier-1 = mechanism/param-efficiency (certain). Tier-2 = the paper's natural-data claim *at this scale* (may be small/negative — that's a real result, not "inconclusive", because Tier-1 proves the apparatus is sensitive). **Do NOT call Tier-1 "verifying the paper."** Full build list in §13.
+
+---
+
 ## ⚠️ COLLABORATION — PUSH PROGRESS EVERY 2H; PULL `feedback/` EVERY ~2H ⚠️
 Every 2h & at each milestone: commit `progress/logs/`, partial `progress/results/`, and a `progress/STATUS.md`
 line (elapsed, active run/seed/arm, step/tokens vs target, **measured MFU & tok/s**, health, what finished/next/ETA);
