@@ -1,3 +1,15 @@
+# H2.3 - explicit Slurm mem/time limits audited
+
+- Timestamp: 2026-07-01T06:17:03Z.
+- Elapsed: H2.3 for the v3 resumed objective.
+- Active jobs: `168254` parquet download is `RUNNING` on `cn34`, elapsed 10m30s, with actual Slurm limit `TimeLimit=12:00:00` and `MinMemoryNode=256G`. `168260` local tokenizer is `PENDING (Dependency)`, with actual limit `TimeLimit=18:00:00` and `MinMemoryNode=1200G` across 4 nodes. `168251` node preflight is `PENDING (Resources)`, with actual limit `TimeLimit=00:15:00`, `MinMemoryNode=128G`, and no GPU allocation yet.
+- H100 usage now: 0 H100 allocated by this resumed objective. The only GPU job is pending preflight `168251`.
+- Limit hygiene: audited all `scripts/*.sh` containing `sbatch`/`#SBATCH`; every submission path now carries explicit `--time` and `--mem`/`#SBATCH --time` and `#SBATCH --mem`. `submit_tier1_r_pilot.sh` and `submit_tier1_registered.sh` now pass explicit train/eval/decision limits on the `sbatch` command line and log them in job manifests.
+- Data progress: static FineWeb-Edu parquet download remains at 28 parquet files / 61G at this check.
+- Validation: `bash -n scripts/*.sh` passed; static time/mem audit produced no missing scripts.
+- Feedback loop: no new feedback after the H2.2 push/pull.
+- Next: push this limit-hygiene update, pull feedback, then continue monitoring download `168254` and dependent tokenizer/gate `168260`.
+
 # H2.2 - parallel tokenizer pipeline queued behind download
 
 - Timestamp: 2026-07-01T06:14:21Z.

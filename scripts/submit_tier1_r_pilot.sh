@@ -13,6 +13,10 @@ TARGET_TOKENS="${4:-20000000000}"
 STEPS="${5:-3179}"
 EOS_ID="${EOS_ID:-1}"
 CONFIG_JSON="${CONFIG_JSON:-configs/generated/A_seed1337.json}"
+TRAIN_TIME="${TRAIN_TIME:-04:00:00}"
+TRAIN_MEM="${TRAIN_MEM:-1800G}"
+EVAL_TIME="${EVAL_TIME:-01:00:00}"
+EVAL_MEM="${EVAL_MEM:-220G}"
 
 cd /mnt/vast/workspaces/JAIF/dy/code/Engram
 mkdir -p progress/logs results/tier1 runs
@@ -33,8 +37,8 @@ for R in "${R_ARRAY[@]}"; do
     --target-tokens "${TARGET_TOKENS}" \
     --tokens-per-shard 100000000
 
-  TRAIN_JOB="$(sbatch --parsable scripts/slurm_tier1_train.sh "${CONFIG_JSON}" "${STREAM_DIR}/shards.txt" "${RUN_DIR}" "${STEPS}")"
+  TRAIN_JOB="$(sbatch --parsable --time="${TRAIN_TIME}" --mem="${TRAIN_MEM}" scripts/slurm_tier1_train.sh "${CONFIG_JSON}" "${STREAM_DIR}/shards.txt" "${RUN_DIR}" "${STEPS}")"
   CKPT_STEP="$(printf '%06d' "${STEPS}")"
-  EVAL_JOB="$(sbatch --parsable --dependency="afterok:${TRAIN_JOB}" scripts/slurm_tier1_eval.sh "${RUN_DIR}/ckpt_step${CKPT_STEP}.pt" "${FACTS_CSV}" "${OUT_PREFIX}")"
-  echo "R=${R} train_job=${TRAIN_JOB} eval_job=${EVAL_JOB}" | tee -a progress/results/tier1_rpilot_jobs.tsv
+  EVAL_JOB="$(sbatch --parsable --dependency="afterok:${TRAIN_JOB}" --time="${EVAL_TIME}" --mem="${EVAL_MEM}" scripts/slurm_tier1_eval.sh "${RUN_DIR}/ckpt_step${CKPT_STEP}.pt" "${FACTS_CSV}" "${OUT_PREFIX}")"
+  echo "R=${R} train_job=${TRAIN_JOB} train_time=${TRAIN_TIME} train_mem=${TRAIN_MEM} eval_job=${EVAL_JOB} eval_time=${EVAL_TIME} eval_mem=${EVAL_MEM}" | tee -a progress/results/tier1_rpilot_jobs.tsv
 done
