@@ -1,3 +1,15 @@
+# H9.0 - 2-node preflight passed; Tier-1 requeued with 20h limit
+
+- Timestamp: 2026-07-01T13:57:45Z.
+- Elapsed: H9.0 for the v3 resumed objective.
+- Feedback response completed: 2-node preflight `172706` ran on `cn[13-14]` and completed `0:0` in 11s. Both nodes reported 8x NVIDIA H100 80GB HBM3, `cuda_available=true`, and `probe_value=1.0`; JSON artifacts are under `progress/results/node_preflight/172706_*.json`.
+- Correction: initial 2-node R1/R2 train jobs `172707` and `172709` started and reached early steps at ~300k tok/s, implying 25,432 steps would slightly exceed the original 18h limit. Slurm denied live `TimeLimit` extension, so canceled `172707/172708/172709/172710` and R4 submitter `172711`, removed partial run/R4 outputs, and requeued with `TRAIN_TIME=20:00:00`.
+- Current Tier-1 queue: R=1 train/eval `172713/172714`, R=2 train/eval `172715/172716`, all using 2 nodes / 16 H100, `STEPS=25432`, `TimeLimit=20:00:00`, `MinMemoryNode=1800G`; eval jobs depend on their corresponding train jobs. R=4,8,16,32 CPU submitter is `172717`, `TimeLimit=08:00:00`, `MinMemoryNode=512G`.
+- Current state: `172713`, `172715`, and `172717` are `PENDING (Priority)`; the 128-H100 preflight `168251` remains pending. No active H100 allocation at this check.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Job table: saved `progress/results/tier1_rpilot_2node_jobs.tsv` for the current 2-node R1/R2 jobs.
+- Next: monitor pending 2-node train jobs and R4+ submitter; once R4+ streams emit jobs, verify they also use 2 nodes and 20h train time.
+
 # H8.9 - pivot Tier-1 train path to 2-node preflight
 
 - Timestamp: 2026-07-01T13:51:42Z.
