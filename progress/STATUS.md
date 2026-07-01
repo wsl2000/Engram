@@ -1,3 +1,17 @@
+# H4.6 - resumed stalled sample-350BT download with larger mem limit
+
+- Timestamp: 2026-07-01T08:40:42Z.
+- Elapsed: H4.6 for the v3 resumed objective.
+- Anomaly: corrected download `168265` stopped making visible progress at 349 / 472 parquet files and 701G on disk; its active `.incomplete` cache file did not grow during a 60s short check, while `sstat` showed `MaxRSS=255016284K` against a 256G allocation. No wrong-scope data was present (`bad_scope=0`), but the process looked stalled and close to memory limit.
+- Fix: patched `scripts/slurm_download_fineweb_parquet.sh` to accept an explicit memory limit as arg 3 / `MEM_LIMIT` and to set `HF_HUB_DOWNLOAD_TIMEOUT=120` plus `HF_HUB_ETAG_TIMEOUT=60` by default. Canceled `168265` and dependent tokenizer `168267` before tokenizer started.
+- Relaunch: submitted resumable download `169152` using the same `data/fineweb_edu_parquet` directory with explicit `--time=08:00:00 --mem=512G`; it is `RUNNING` on `cn09`. Submitted dependent tokenizer/data-gate `169155` with `afterok:169152`, explicit `--time=18:00:00 --mem=1200G/node`, and parquet glob `data/fineweb_edu_parquet/sample/350BT/*.parquet`.
+- Active jobs: `169152` running CPU-only; `169155` dependency-pending CPU-only; `168251` H100 node preflight still pending with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Data state at restart: 349 / 472 sample-350BT parquet files, 701G, `bad_scope=0`.
+- Validation: `bash -n scripts/*.sh`, `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`, and static time/mem audit passed before relaunch.
+- Feedback loop: about to push this status and pull feedback.
+- Next: monitor `169152` for resumed growth. If it stalls again, inspect the active incomplete file and consider disabling `hf_transfer` for the remaining files.
+
 # H4.1 - sample-350BT download 67pct
 
 - Timestamp: 2026-07-01T08:06:55Z.
