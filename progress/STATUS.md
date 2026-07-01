@@ -1,3 +1,14 @@
+# H12.1 - feedback confirms rung-0 apparatus validity
+
+- Timestamp: 2026-07-01T16:53:12Z.
+- Elapsed: H12.1 for the v3 resumed objective.
+- Pulled and read `feedback/review-20260701T1625Z.md` (ON-TRACK). It confirms rung-0 `kb-inject` passed cleanly and treats the certain-verdict apparatus as proven/sensitive.
+- Local rung-0 summary matches feedback: `records=200`, `normal_em=1.0`, `knockout_em=0.0`, `em_collapse=1.0`, McNemar `b=200/c=0`, `mcnemar_exact_p=1.2446030555722283e-60`, and `key_identity_passed=true`.
+- Updated `progress/PRELIMINARY.md` to distinguish positive apparatus validity from the still-pending Tier-1/Tier-2 Engram verdict. No recall-vs-R/frozen-R/registered-B/knockout verdict is claimed yet.
+- Feedback also notes Tier-2 MFU risk: current compile+memory-efficient CE path is actually enabled but still only ~7.3% MFU at mbs=4; before Tier-2, test whether memory-efficient/fused CE permits mbs=8 and do not waive the 18-20% gate into a 6-day run.
+- Active H100 usage remains 80 H100 for this objective. R=32 remains held until one 2-node train frees resources.
+- Next: continue the R=1/2/4/8/16 A-only pilot to eval completion, then freeze R from A-only recall.
+
 # H11.6 - current preliminary status updated
 
 - Timestamp: 2026-07-01T16:21:11Z.
