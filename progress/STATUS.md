@@ -1,3 +1,15 @@
+# H11.5 - 5B R-pilot mid-run healthy
+
+- Timestamp: 2026-07-01T16:19:45Z.
+- Elapsed: H11.5 for the v3 resumed objective.
+- Active H100 usage now: 80 H100 allocated by this resumed objective. Five train jobs remain running: R=1 `172916`, R=2 `173037`, R=4 `173041`, R=8 `173044`, R=16 `173049`; their eval jobs remain pending on dependencies.
+- Train progress: R=1 step 2,184 / 6,358 (`tokens_seen=1,717,567,488`, ~340k tok/s, MFU ~0.0727); R=2 step 1,816 / 6,358 (`tokens_seen=1,428,160,512`, ~340k tok/s, MFU ~0.0728); R=4 step 1,575 / 6,358 (`tokens_seen=1,238,630,400`, ~340k tok/s, MFU ~0.0728); R=8 step 1,332 / 6,358 (`tokens_seen=1,047,527,424`, ~340k tok/s, MFU ~0.0729); R=16 step 1,102 / 6,358 (`tokens_seen=866,648,064`, ~340k tok/s, MFU ~0.0728).
+- Health: grep over all five train logs still found no `Traceback`, `RuntimeError`, `OutOfMemory`, stale-cache `OSError`, or `ChildFailed`.
+- Checkpoints: all active R values have at least one checkpoint. R=1/R=2/R=4/R=8 have rotated two-checkpoint sets; R=16 has `ckpt_step000624.pt`.
+- Disk: VAST free space is 16T. Checkpoint and Tier-1 stream growth remain within budget.
+- Feedback loop: `git fetch origin` produced no new remote updates; branch is synchronized with `origin/main`.
+- Next: keep monitoring to completion/eval; submit R=32 only after one 2-node train frees resources.
+
 # H11.0 - five-way 5B R-pilot stable
 
 - Timestamp: 2026-07-01T15:48:16Z.
