@@ -1,3 +1,15 @@
+# H7.3 - official 300B data gate passed
+
+- Timestamp: 2026-07-01T12:15:01Z.
+- Elapsed: H7.3 for the v3 resumed objective.
+- Completed jobs: `169155` tokenizer/data-gate job completed successfully (`COMPLETED`, exit `0:0`, elapsed `02:49:18`). Batch max RSS was `109187940K`; `srun` step max RSS was `163127536K`, within the explicit `1200G/node` limit.
+- Active jobs: only `168251` 128-H100 node preflight remains `PENDING (AssocGrpGRES/Resources)` with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Official data gate: saved `progress/results/data_gate_sample350bt_300b.json`. Gate passed with `gate_passed=true`, `gate_min_tokens=200000000000`, `token_count=300000000000`, `gate_shard_token_sum=300000000000`, `doc_count=301488200`, `gate_doc_manifest_lines=301488200`, `parquet_files=472`, and `shard_count=3008`.
+- Data layout: static parquet cache is 930G under `data/fineweb_edu_parquet`; tokenized output tree is 1.2T under `data/fineweb_edu_deepseek_v3_300b`; merged manifest directory is 52G and references the worker shard files rather than duplicating token shards.
+- Feedback loop: latest feedback remains ON-TRACK (`feedback/review-20260701T0834Z.md`).
+- Next: with the official >=200B data gate passed, proceed to Tier-1 pre-gate discipline and MFU gate work. The 128-H100 preflight is still queued; while waiting, prepare or run Tier-1 pre-gate only as allowed by feedback, without waiting for MFU/Tier-2 gates.
+
 # H7.0 - tokenizer crossed 200B raw-output estimate
 
 - Timestamp: 2026-07-01T10:59:22Z.

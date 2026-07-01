@@ -1,0 +1,33 @@
+{
+  "output_dir": "data/fineweb_edu_deepseek_v3_300b/merged",
+  "dtype": "uint32",
+  "worker_dirs": [
+    "data/fineweb_edu_deepseek_v3_300b/worker_0",
+    "data/fineweb_edu_deepseek_v3_300b/worker_1",
+    "data/fineweb_edu_deepseek_v3_300b/worker_10",
+    "data/fineweb_edu_deepseek_v3_300b/worker_11",
+    "data/fineweb_edu_deepseek_v3_300b/worker_12",
+    "data/fineweb_edu_deepseek_v3_300b/worker_13",
+    "data/fineweb_edu_deepseek_v3_300b/worker_14",
+    "data/fineweb_edu_deepseek_v3_300b/worker_15",
+    "data/fineweb_edu_deepseek_v3_300b/worker_2",
+    "data/fineweb_edu_deepseek_v3_300b/worker_3",
+    "data/fineweb_edu_deepseek_v3_300b/worker_4",
+    "data/fineweb_edu_deepseek_v3_300b/worker_5",
+    "data/fineweb_edu_deepseek_v3_300b/worker_6",
+    "data/fineweb_edu_deepseek_v3_300b/worker_7",
+    "data/fineweb_edu_deepseek_v3_300b/worker_8",
+    "data/fineweb_edu_deepseek_v3_300b/worker_9"
+  ],
+  "parquet_files": 472,
+  "doc_count": 301488200,
+  "token_count": 300000000000,
+  "shard_count": 3008,
+  "shard_manifest": "data/fineweb_edu_deepseek_v3_300b/merged/shards.csv",
+  "token_list": "data/fineweb_edu_deepseek_v3_300b/merged/shards.txt",
+  "doc_manifest": "data/fineweb_edu_deepseek_v3_300b/merged/docs.jsonl",
+  "gate_min_tokens": 200000000000,
+  "gate_passed": true,
+  "gate_shard_token_sum": 300000000000,
+  "gate_doc_manifest_lines": 301488200
+}
