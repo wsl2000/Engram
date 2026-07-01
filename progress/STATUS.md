@@ -1,3 +1,16 @@
+# H17.6 - R32 train healthy at 3.89B tokens
+
+- Timestamp: 2026-07-01T22:31:16Z.
+- Elapsed: H17.6 for the v3 resumed objective.
+- Feedback loop: `git fetch origin` found no new remote feedback beyond `feedback/review-20260701T2025Z.md`; branch is synchronized with `origin/main`.
+- Active H100 usage for this objective remains 16 H100: only R=32 train `173143` is running on `cn[13-14]` with `TimeLimit=08:00:00`, `MinMemoryNode=1800G`. Dependent eval `173144` remains pending with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- R=32 progress: step 4,941 / 6,358, `tokens_seen=3,885,760,512`, ~340.6k tok/s, MFU ~0.0729, `ce_impl=memory_efficient`, `moe_backend=grouped`, `micro_batch_size=4`, `grad_accum_steps=6`.
+- Checkpoints: latest complete R=32 checkpoints are `ckpt_step003817.pt` and `ckpt_step004455.pt`, each 28,030,761,871 bytes.
+- Health: error scan over R=32 train log/run dir found no `Traceback`, `RuntimeError`, `OOM`, `OSError`, `FAILED`, `ChildFailed`, or stale-cache errors.
+- Disk: `/mnt/vast` has 2.5P free; `/tmp` has 238G free.
+- ETA: at current throughput R=32 has roughly 1.11B tokens / 1,417 steps remaining, about 55 minutes of training plus final checkpoint and a ~3-4 minute eval.
+- Next: monitor R=32 final checkpoint/eval, then choose freeze-R using the updated feedback rule: freeze R=32 if A-recall remains below ~8-10%, otherwise freeze R=16.
+
 # H15.6 - feedback updates freeze-R rule; wait for R32
 
 - Timestamp: 2026-07-01T20:28:05Z.
