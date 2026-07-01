@@ -1,3 +1,14 @@
+# H10.2 - R2 5B compile train running; R4 stream building
+
+- Timestamp: 2026-07-01T15:09:07Z.
+- Elapsed: H10.2 for the v3 resumed objective.
+- Submitted remaining capped pilot set: CPU submitter `172988` is running for R=2,4,8,16 with explicit `TimeLimit=08:00:00`, `MinMemoryNode=512G`; R=32 is intentionally held back until one 2-node train finishes, keeping worst-case Tier-1 train concurrency at <=80 H100.
+- R=2 stream completed: `token_count=4,999,970,000`, `doc_count=20,000`, `shard_count=50`. R=2 train/eval jobs are `173037/173038`; train is running on `cn[24-25]` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; eval is pending on `afterok:173037` with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- R=2 compile/cache status: reached step 44 / 6,358, `tokens_seen=34,603,008`, `tokens_per_s=338,843`, MFU `0.0725`, `ce_impl=memory_efficient`; no local-cache Triton failure.
+- R=1 status: train `172916` reached step 428 / 6,358, `tokens_seen=336,592,896`, `tokens_per_s=339,859`, MFU `0.0727`; eval `172919` remains pending on train completion.
+- Active H100 usage now: 32 H100 allocated by this resumed objective. The 128-H100 preflight `168251` remains pending.
+- Next: monitor `172988` as it builds R=4/8/16 and emits train/eval jobs; verify each emitted train job keeps 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`.
+
 # H10.0 - R1 5B compile retry running
 
 - Timestamp: 2026-07-01T14:55:37Z.
