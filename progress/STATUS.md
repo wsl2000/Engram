@@ -1,3 +1,15 @@
+# H15.6 - feedback updates freeze-R rule; wait for R32
+
+- Timestamp: 2026-07-01T20:28:05Z.
+- Elapsed: H15.6 for the v3 resumed objective.
+- Pulled and read `feedback/review-20260701T2025Z.md` (ON-TRACK). Feedback confirms the A-only R-pilot is doing what it should: A recall rises monotonically from R=1 to R=16 but remains below 10%, negative controls are zero, and knockout does not move A.
+- Important correction adopted: freeze-R should be the largest tested R with A-recall below the backbone-hard bound, not the smallest. This maximizes the later registered B signal while keeping A non-circular/backbone-hard.
+- Current freeze-R rule: if R=32 A-recall stays below roughly 8-10%, freeze at R=32; if R=32 reaches or exceeds ~10%, freeze at R=16.
+- R=32 status: train `173143` is running on 2 nodes / 16 H100 with `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; latest check at 2026-07-01T20:27:56Z reached step 1,867 / 6,358, `tokens_seen=1,468,268,544`, ~340k tok/s, MFU ~0.0728. Dependent eval `173144` remains pending with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Health: R=32 has complete checkpoints through `ckpt_step001265.pt`; error scan found no `Traceback`, `RuntimeError`, `OOM`, `OSError`, `FAILED`, `ChildFailed`, or stale-cache errors.
+- Active H100 usage for this objective remains 16 H100, all from R=32 train.
+- Next: continue monitoring R=32 to completion/eval, then choose freeze-R per the updated feedback rule.
+
 # H15.1 - R16 eval succeeded; recall higher but knockout still not collapsing
 
 - Timestamp: 2026-07-01T19:55:58Z.
