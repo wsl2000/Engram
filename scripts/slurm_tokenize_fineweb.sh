@@ -8,13 +8,16 @@ WORKERS="${4:-16}"
 NODES="${5:-4}"
 TIME_LIMIT="${6:-08:00:00}"
 CPUS_PER_TASK="${CPUS_PER_TASK:-32}"
-TOKENS_PER_WORKER=$(( (MAX_TOKENS + WORKERS - 1) / WORKERS ))
+GATE_MIN_TOKENS="${GATE_MIN_TOKENS:-200000000000}"
 
 mkdir -p "${OUT_DIR}" progress/logs
 SBATCH_DEP_ARGS=()
 if [[ -n "${SBATCH_DEPENDENCY:-}" ]]; then
   SBATCH_DEP_ARGS+=(--dependency="${SBATCH_DEPENDENCY}")
 fi
+printf -v Q_PWD "%q" "${PWD}"
+printf -v Q_PARQUET_GLOB "%q" "${PARQUET_GLOB}"
+printf -v Q_OUT_DIR "%q" "${OUT_DIR}"
 
 sbatch -p all \
   "${SBATCH_DEP_ARGS[@]}" \
@@ -22,4 +25,4 @@ sbatch -p all \
   -N"${NODES}" --ntasks="${WORKERS}" --cpus-per-task="${CPUS_PER_TASK}" \
   --time="${TIME_LIMIT}" --mem=1200G \
   --output="${PWD}/progress/logs/tokenize_%j.out" \
-  --wrap="cd '${PWD}' && srun --ntasks='${WORKERS}' --cpus-per-task='${CPUS_PER_TASK}' bash -lc 'WORKER=\${SLURM_PROCID}; PYTHONPATH=src python -m engram.tokenize_fineweb --parquet-glob \"${PARQUET_GLOB}\" --output-dir \"${OUT_DIR}/worker_\${WORKER}\" --max-tokens \"${TOKENS_PER_WORKER}\" --tokens-per-shard 100000000 --batch-docs 512 --num-workers \"${WORKERS}\" --worker-index \"\${WORKER}\"' && mapfile -t WORKER_DIRS < <(find '${OUT_DIR}' -maxdepth 1 -type d -name 'worker_*' | sort) && PYTHONPATH=src python scripts/merge_tokenized_outputs.py --worker-dirs \"\${WORKER_DIRS[@]}\" --output-dir '${OUT_DIR}/merged' && PYTHONPATH=src python scripts/assert_data_gate.py --output-dir '${OUT_DIR}/merged' --min-tokens 200000000000"
+  --wrap="cd ${Q_PWD} && bash scripts/run_tokenize_fineweb_job.sh ${Q_PARQUET_GLOB} ${Q_OUT_DIR} ${MAX_TOKENS} ${WORKERS} ${CPUS_PER_TASK} ${GATE_MIN_TOKENS}"

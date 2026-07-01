@@ -1,3 +1,16 @@
+# H2.5 - tokenizer wrapper made bash-explicit
+
+- Timestamp: 2026-07-01T06:26:01Z.
+- Elapsed: H2.5 for the v3 resumed objective.
+- Anomaly avoided: pending tokenizer job `168266` used a Slurm `--wrap` command containing Bash-only `mapfile`/process substitution. Since Slurm `--wrap` shell behavior is not a good place to rely on those features, canceled `168266` before it started.
+- Fix: added `scripts/run_tokenize_fineweb_job.sh` and changed `scripts/slurm_tokenize_fineweb.sh` so `--wrap` only runs `bash scripts/run_tokenize_fineweb_job.sh ...`. The helper runs the 16-way `srun`, merges worker outputs, asserts exact worker count, and runs the >=200B data gate.
+- Relaunch: submitted corrected tokenizer/data-gate job `168267` with dependency `afterok:168265`, parquet glob `data/fineweb_edu_parquet/sample/350BT/*.parquet`, explicit `TimeLimit=18:00:00`, and `MinMemoryNode=1200G`. It is `PENDING (Dependency)`.
+- Active jobs: `168265` corrected sample-350BT download is still `RUNNING` on `cn09`, CPU-only, and has reached 14 parquet files / 29G with `bad_scope=0`. `168251` node preflight is still pending resources with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Validation: `bash -n scripts/*.sh`, `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`, and static time/mem audit passed.
+- Feedback loop: no new feedback after the H2.4 push/pull.
+- Next: push wrapper fix, pull feedback, continue monitoring `168265` and verify sample-only paths until `168267` starts.
+
 # H2.4 - corrected parquet scope to sample-350BT only
 
 - Timestamp: 2026-07-01T06:21:15Z.
