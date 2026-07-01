@@ -1,3 +1,15 @@
+# H9.9 - compile cache failure fixed before R1 retry
+
+- Timestamp: 2026-07-01T14:50:22Z.
+- Elapsed: H9.9 for the v3 resumed objective.
+- R=1 5B stream completed under `data/tier1/rpilot_R1_tokens5000000000`: `token_count=4,999,985,000`, `doc_count=10,000`, `base_docs=5,000`, `injected_docs=5,000`, `shard_count=50`.
+- First R=1 compile train attempt `172863` had correct Slurm limits and allocation (`2 nodes / 16 H100`, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`) but failed after 79s before step 1. Dependent eval `172864` was canceled after `DependencyNeverSatisfied`.
+- Root cause: `torch.compile`/Triton failed while reading/writing the shared VAST-backed compile cache (`/mnt/vast/workspaces/JAIF/dy/cache/triton` and `/mnt/vast/workspaces/JAIF/dy/tmp/torchinductor_*`), with `OSError: [Errno 116] Stale file handle` and `OSError: [Errno 521]`. This was an infrastructure/cache-location failure, not a model OOM or data failure.
+- Fix: `scripts/slurm_tier1_train.sh` now creates per-job/per-node-task local cache dirs under `/tmp` and exports `TORCHINDUCTOR_CACHE_DIR`, `TRITON_CACHE_DIR`, and `XDG_CACHE_HOME` inside each `srun` task before `torchrun`.
+- Current queue: only 128-H100 preflight `168251` is pending. Active H100 usage now: 0 H100 allocated by this resumed objective.
+- Validation: `bash -n scripts/slurm_tier1_train.sh` and `git diff --check` passed.
+- Next: push this anomaly/fix, then resubmit R=1 5B compile train directly against the completed stream with the same explicit train/eval limits. If local cache compile reaches first metrics, submit R=2,4,8,16,32.
+
 # H9.7 - feedback adopted: switch R-pilot to 5B/R with compile
 
 - Timestamp: 2026-07-01T14:36:23Z.

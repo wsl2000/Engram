@@ -32,6 +32,7 @@ export ENGRAM_CE_IMPL="${ENGRAM_CE_IMPL:-memory_efficient}"
 export ENGRAM_CE_CHUNK_TOKENS="${ENGRAM_CE_CHUNK_TOKENS:-256}"
 export ENGRAM_TORCH_COMPILE="${ENGRAM_TORCH_COMPILE:-1}"
 export ENGRAM_TORCH_COMPILE_MODE="${ENGRAM_TORCH_COMPILE_MODE:-default}"
+export ENGRAM_COMPILE_CACHE_BASE="${ENGRAM_COMPILE_CACHE_BASE:-/tmp}"
 export NCCL_DEBUG=WARN
 export OMP_NUM_THREADS=1
 
@@ -45,6 +46,10 @@ srun \
   --cpus-per-task="${SLURM_CPUS_PER_TASK}" \
   bash -c '
     set -euo pipefail
+    export TORCHINDUCTOR_CACHE_DIR="${ENGRAM_COMPILE_CACHE_BASE}/engram_torchinductor_${SLURM_JOB_ID}_${SLURM_PROCID}"
+    export TRITON_CACHE_DIR="${ENGRAM_COMPILE_CACHE_BASE}/engram_triton_${SLURM_JOB_ID}_${SLURM_PROCID}"
+    export XDG_CACHE_HOME="${ENGRAM_COMPILE_CACHE_BASE}/engram_xdg_${SLURM_JOB_ID}_${SLURM_PROCID}"
+    mkdir -p "${TORCHINDUCTOR_CACHE_DIR}" "${TRITON_CACHE_DIR}" "${XDG_CACHE_HOME}"
     torchrun \
       --nnodes="${SLURM_NNODES}" \
       --nproc_per_node=8 \
