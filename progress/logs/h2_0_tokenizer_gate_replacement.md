@@ -1,0 +1,26 @@
+# H2.0 tokenizer replacement and data gate hardening
+
+- Replaced `src/engram/tokenize_fineweb.py`.
+  - It is now a local-parquet-only compatibility wrapper over `engram.offline_data.tokenize_local_parquet`.
+  - The v1 HF streaming tokenizer path is removed.
+- Updated `scripts/slurm_tokenize_fineweb.sh`.
+  - Now requires `PARQUET_GLOB OUT_DIR`.
+  - Runs local parquet tokenization.
+- Added `scripts/slurm_download_fineweb_parquet.sh`.
+  - Uses `scripts/download_fineweb_parquet.py`.
+  - Enables `HF_HUB_ENABLE_HF_TRANSFER=1`.
+- Added compatibility smoke:
+  - Output: `progress/results/tokenize_fineweb_compat_smoke`
+  - docs: 3
+  - tokens: 44
+  - dtype: uint32
+  - manifests: `shards.csv`, `shards.txt`, `docs.jsonl`
+- Hardened `assert_data_gate()`.
+  - Checks shard token sum against summary token count.
+  - Checks actual shard byte size equals `token_count * sizeof(uint32)`.
+  - Checks doc manifest line count equals summary doc count.
+- Validation:
+  - `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`
+  - `PYTHONPATH=src pytest -q` -> 19 passed, 1 skipped
+- Queue:
+  - preflight job `168251` still pending with no GPU allocation.

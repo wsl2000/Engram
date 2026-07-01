@@ -219,10 +219,36 @@ def assert_data_gate(output_dir: str | Path, min_tokens: int = 200_000_000_000) 
     summary = json.loads(summary_path.read_text())
     token_count = int(summary.get("token_count", 0))
     doc_count = int(summary.get("doc_count", 0))
+    shard_token_sum = 0
+    shard_count = 0
+    with shard_manifest.open(newline="") as f:
+        for row in csv.DictReader(f):
+            shard_count += 1
+            tokens = int(row["token_count"])
+            shard_token_sum += tokens
+            shard_path = Path(row["path"])
+            if not shard_path.exists():
+                raise FileNotFoundError(shard_path)
+            expected_bytes = tokens * np.dtype(np.uint32).itemsize
+            actual_bytes = shard_path.stat().st_size
+            if actual_bytes != expected_bytes:
+                raise RuntimeError(
+                    f"data gate failed: shard size mismatch for {shard_path}: "
+                    f"bytes={actual_bytes} expected={expected_bytes}"
+                )
+    doc_manifest_lines = sum(1 for line in doc_manifest.open() if line.strip())
     if token_count < min_tokens:
         raise RuntimeError(f"data gate failed: token_count={token_count} < min_tokens={min_tokens}")
     if doc_count <= 0:
         raise RuntimeError("data gate failed: doc manifest is empty")
+    if shard_count <= 0:
+        raise RuntimeError("data gate failed: no shards in manifest")
+    if shard_token_sum != token_count:
+        raise RuntimeError(f"data gate failed: shard token sum {shard_token_sum} != summary token_count {token_count}")
+    if doc_manifest_lines != doc_count:
+        raise RuntimeError(f"data gate failed: doc manifest lines {doc_manifest_lines} != summary doc_count {doc_count}")
     summary["gate_min_tokens"] = min_tokens
     summary["gate_passed"] = True
+    summary["gate_shard_token_sum"] = shard_token_sum
+    summary["gate_doc_manifest_lines"] = doc_manifest_lines
     return summary

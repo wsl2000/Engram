@@ -1,3 +1,14 @@
+# H2.0 - streaming tokenizer replaced; data gate hardened
+
+- Elapsed: H2.0 for the v3 resumed objective.
+- Active run: node preflight job `168251` remains `PENDING (Resources)`, no GPUs allocated.
+- Tokenizer replacement: replaced `src/engram/tokenize_fineweb.py` with a local-parquet-only compatibility entrypoint. The old HF streaming path is removed from tokenizer code. `scripts/slurm_tokenize_fineweb.sh` now requires a parquet glob and local-tokenizes parquet; added `scripts/slurm_download_fineweb_parquet.sh` for resumable static parquet download.
+- Compatibility smoke: `PYTHONPATH=src python -m engram.tokenize_fineweb --parquet-glob 'progress/results/local_parquet_smoke/source/*.parquet' --output-dir progress/results/tokenize_fineweb_compat_smoke --id-column id --tokens-per-shard 128 --max-tokens 512 --batch-docs 2` passed with 3 docs, 44 uint32 tokens, `shards.csv`, `shards.txt`, and `docs.jsonl`.
+- Data gate hardening: `assert_data_gate()` now validates shard manifest token sums, actual uint32 file byte sizes, and doc manifest line count, not just `summary.json`. Compat smoke gate passed with `gate_shard_token_sum=44` and `gate_doc_manifest_lines=3`.
+- Validation: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 19 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest pull.
+- Next: keep monitoring `168251`; if it starts and passes node preflight, run 128-H100 calibration. If it stays pending, continue CPU-side data-download orchestration and Tier-1 report templates.
+
 # H1.8 - Tier-1 submit wrappers ready; preflight still pending
 
 - Elapsed: H1.8 for the v3 resumed objective.

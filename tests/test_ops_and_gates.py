@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 import torch
 
 from engram.losses import linear_cross_entropy
@@ -8,8 +9,10 @@ from engram.ops import latest_checkpoint, rotate_checkpoints
 
 
 def test_data_gate_requires_tokens_and_doc_manifest(tmp_path):
+    shard = tmp_path / "x.u32"
+    np.arange(10, dtype=np.uint32).tofile(shard)
     (tmp_path / "summary.json").write_text(json.dumps({"token_count": 10, "doc_count": 1}))
-    (tmp_path / "shards.csv").write_text("path,token_count,first_doc_id,last_doc_id\nx,10,a,a\n")
+    (tmp_path / "shards.csv").write_text(f"path,token_count,first_doc_id,last_doc_id\n{shard},10,a,a\n")
     (tmp_path / "docs.jsonl").write_text("{}\n")
     assert assert_data_gate(tmp_path, min_tokens=10)["gate_passed"] is True
 

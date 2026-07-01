@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUT_DIR="${1:-data/fineweb_edu_deepseek}"
-TOTAL_TOKENS="${2:-90000000000}"
-WORKERS="${3:-80}"
-TIME_LIMIT="${4:-08:00:00}"
-CPUS_PER_TASK="${5:-4}"
-NODES="${6:-10}"
+PARQUET_GLOB="${1:?usage: $0 PARQUET_GLOB OUT_DIR [MAX_TOKENS] [NODES] [TIME_LIMIT]}"
+OUT_DIR="${2:?usage: $0 PARQUET_GLOB OUT_DIR [MAX_TOKENS] [NODES] [TIME_LIMIT]}"
+MAX_TOKENS="${3:-300000000000}"
+NODES="${4:-4}"
+TIME_LIMIT="${5:-08:00:00}"
+CPUS_PER_TASK="${CPUS_PER_TASK:-32}"
 
-TOKENS_PER_WORKER=$(( (TOTAL_TOKENS + WORKERS - 1) / WORKERS ))
 mkdir -p "${OUT_DIR}" progress/logs
 
 sbatch -p all \
-  --job-name=engram-tokenize \
-  -N"${NODES}" --ntasks="${WORKERS}" --cpus-per-task="${CPUS_PER_TASK}" \
-  --time="${TIME_LIMIT}" --mem-per-cpu=4G \
+  --job-name=engram-tokenize-local \
+  -N"${NODES}" --ntasks=1 --cpus-per-task="${CPUS_PER_TASK}" \
+  --time="${TIME_LIMIT}" --mem=1200G \
   --output="${PWD}/progress/logs/tokenize_%j.out" \
-  --wrap="cd '${PWD}' && srun --ntasks='${WORKERS}' --cpus-per-task='${CPUS_PER_TASK}' bash -lc 'WORKER=\${SLURM_PROCID}; PYTHONPATH=src python -m engram.tokenize_fineweb --output-dir \"${OUT_DIR}\" --max-tokens \"${TOKENS_PER_WORKER}\" --tokens-per-shard 100000000 --num-workers \"${WORKERS}\" --worker-index \${WORKER} --batch-docs 512'"
+  --wrap="cd '${PWD}' && PYTHONPATH=src python -m engram.tokenize_fineweb --parquet-glob '${PARQUET_GLOB}' --output-dir '${OUT_DIR}' --max-tokens '${MAX_TOKENS}' --tokens-per-shard 100000000 --batch-docs 512"
