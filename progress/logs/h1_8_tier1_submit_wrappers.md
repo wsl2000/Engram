@@ -1,0 +1,31 @@
+# H1.8 Tier-1 submit wrappers
+
+- Added `scripts/submit_tier1_r_pilot.sh`.
+  - Builds mixed streams for a comma-separated R sweep.
+  - Submits A-only train jobs.
+  - Submits dependent injected-facts eval jobs.
+  - Logs job IDs to `progress/results/tier1_rpilot_jobs.tsv`.
+- Added `scripts/submit_tier1_registered.sh`.
+  - Builds frozen-R registered mixed stream.
+  - Submits A and B train jobs.
+  - Submits dependent A/B eval jobs.
+  - Submits dependent `scripts/decide_tier1.py` job.
+- Added `--auto-base-chunk` to `scripts/build_tier1_stream.py`.
+  - Requires `--target-tokens`.
+  - Estimates base chunk from `target_tokens / (fact_count * repeats)`.
+- Corrected submit-script default DeepSeek-V3 EOS id to 1.
+- Smoke:
+  - `progress/results/tier1_auto_chunk_smoke/summary.json`
+  - target tokens 20,000
+  - actual tokens 20,000
+  - docs 6,668
+  - base docs 3,334
+  - injected docs 3,334
+  - shards 5
+- Validation:
+  - `bash -n scripts/submit_tier1_r_pilot.sh scripts/submit_tier1_registered.sh`
+  - `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`
+  - `PYTHONPATH=src pytest -q` -> 19 passed, 1 skipped
+- Queue:
+  - preflight job `168251` is still pending.
+  - `squeue` briefly returned `AssocGrpGRES`; `scontrol show job` returned `PENDING (Resources)` with start estimate `2026-07-01T21:08:46Z`.

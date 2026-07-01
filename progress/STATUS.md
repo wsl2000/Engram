@@ -1,3 +1,14 @@
+# H1.8 - Tier-1 submit wrappers ready; preflight still pending
+
+- Elapsed: H1.8 for the v3 resumed objective.
+- Active run: node preflight job `168251` remains pending. `squeue` briefly reported `AssocGrpGRES`; `scontrol show job` reports `PENDING (Resources)` with updated estimated start `2026-07-01T21:08:46Z`. No GPUs allocated.
+- Tier-1 orchestration: added `scripts/submit_tier1_r_pilot.sh` for A-only R sweep submission and `scripts/submit_tier1_registered.sh` for frozen-R registered A/B train + eval + decision submission.
+- Stream dilution: `scripts/build_tier1_stream.py` now supports `--auto-base-chunk`, estimating base tokens per injected example from target tokens / (F*R). DeepSeek-V3 EOS default for submit scripts is corrected to token id 1.
+- Auto-chunk smoke: `progress/results/tier1_auto_chunk_smoke/` was generated from the registered 5,000-fact set plus local parquet smoke base tokens; target 20,000 tokens, repeats 2, 6,668 docs, 3,334 base docs, 3,334 injected docs, 5 shards.
+- Validation: `bash -n` passed for submit wrappers; `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 19 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest push/pull.
+- Next: monitor `168251`; after node preflight passes, run 128-H100 calibration. Do not start Tier-2 before data/MFU gates.
+
 # H1.7 - local memory-efficient linear CE backend added
 
 - Elapsed: H1.7 for the v3 resumed objective.
