@@ -1,3 +1,12 @@
+# H10.6 - R8 5B compile train running
+
+- Timestamp: 2026-07-01T15:27:38Z.
+- Elapsed: H10.6 for the v3 resumed objective.
+- R=8 stream completed: `token_count=4,999,880,000`, `doc_count=80,000`, `shard_count=50`. R=8 train/eval jobs are `173044/173045`; train is running on `cn[09,33]` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; eval is pending on `afterok:173044` with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- R=8 compile/cache status: reached step 36 / 6,358, `tokens_seen=28,311,552`, `tokens_per_s=338,336`, MFU `0.0724`, `ce_impl=memory_efficient`; no local-cache Triton failure.
+- Active H100 usage now: 64 H100 allocated by this resumed objective: R=1 `172916`, R=2 `173037`, R=4 `173041`, R=8 `173044`. There is also one unrelated same-user 1-H100 job `173043_0` (`geowam-b64-page4d-clean`), not touched. CPU submitter `172988` is building R=16. The 128-H100 preflight `168251` remains pending.
+- Next: monitor `172988` for R=16 job emission. R=32 remains held until one 2-node train finishes so this objective stays at <=80 H100 active training.
+
 # H10.4 - R4 5B compile train running
 
 - Timestamp: 2026-07-01T15:17:51Z.
