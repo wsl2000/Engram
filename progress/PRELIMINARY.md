@@ -1,82 +1,33 @@
-# Preliminary Verdict - H10.3
+# Preliminary Status - H11.6
+
+Timestamp: 2026-07-01T16:21:11Z.
 
 ## Verdict
 
-**NOT VERIFIED / INCONCLUSIVE for pair 1.** The pair-1 20B-token endpoint does **not** satisfy the handoff PASS criteria: Engram knockout does not degrade TriviaQA/PopQA, and targeted slices are mixed rather than clearly better for the Engram arm.
+**No current Engram verdict yet.** This is an explicit honest non-verdict, not a pass/fail claim.
 
-This is **not** a clean claim that Engram does not work. The Engram path is active and its contribution grew by the endpoint, but the pair-1 training stream used only 4.69B unique tokens sampled with replacement to 19.77B tokens. The current best interpretation is repeated-data washout / below the data threshold where Engram has a distinct job.
+The v3 Tier-1 decision requires the A-only rarity pilot to finish, the frozen R to be selected from A recall, and the registered A/B plus B-knockout evaluation to run. At H11.6 the current 5B/R A-only pilot is still training for R=1,2,4,8,16, so no recall-vs-R table, frozen R, knockout result, paired NLL, McNemar test, or Tier-2 natural-data result exists yet.
 
-## Pair-1 Endpoint
+## Why This Supersedes The Old Preliminary
 
-- A checkpoint: `runs/pair1_A_seed1337_20B_mbs4_80_v2/ckpt_step005027.pt`
-- B checkpoint: `runs/pair1_B_seed1337_final5027_mbs4_80/ckpt_step005027.pt`
-- Tokens per arm: 19,766,968,320
-- Optimizer/precision/world size: AdamW, bf16, 80 GPUs, DDP full expert replication, grouped local MoE backend
-- Data caveat: pair-1 consumed the 60-shard 4.6908B-token stream with replacement. Eval used a separate h4 tokenization directory, but the current manifests do not include document IDs, so document-level disjointness from pair-1 cannot be proven after the fact.
+The prior `progress/PRELIMINARY.md` described an older pair-1 natural-data run from June 29, 2026. That result is preserved in git history but is not the current v3 verdict path. The current plan follows `handoff.md` and later feedback: build the Tier-1 injected-fact apparatus first, shorten the A-only R-pilot to about 5B/R, then freeze R before any registered A/B claim.
 
-## Knockout - Primary
+## Current Evidence At H11.6
 
-Answer-NLL knockout minus normal:
+- Data gate passed earlier with 300B DeepSeek-V3-tokenized FineWeb-Edu tokens on disk.
+- Rung-0/fact-set apparatus exists: 5,000 single-token facts with negative controls and injected streams.
+- The local compile-cache failure was fixed by moving TorchInductor/Triton caches to per-job local `/tmp` paths.
+- Current A-only R-pilot is running for R=1,2,4,8,16 at 5B tokens each, 2 nodes / 16 H100 per run, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`.
+- All five active R-pilot trains have reached steady training with `ce_impl=memory_efficient`, grouped MoE, about 337k-341k tok/s per 16-H100 run, and MFU about 0.072-0.073.
+- No current train log shows `Traceback`, `RuntimeError`, `OutOfMemory`, stale-cache `OSError`, or `ChildFailed`.
 
-| Task | Records | Normal NLL | Knockout NLL | Delta |
-|---|---:|---:|---:|---:|
-| TriviaQA | 200 | 3.615770 | 3.609136 | -0.006633 |
-| PopQA | 200 | 9.611481 | 9.592465 | -0.019016 |
+## Current Non-Decision
 
-5-shot EM:
-
-| Task | Records | Normal EM | Knockout EM | Retention |
-|---|---:|---:|---:|---:|
-| TriviaQA | 100 | 0.000 | 0.000 | n/a |
-| PopQA | 100 | 0.000 | 0.000 | n/a |
-
-Interpretation: no factual collapse. EM is still at floor, and answer-NLL moves slightly in the wrong direction on both tasks.
-
-## Targeted Slices - Primary
-
-Held-out h4 FineWeb-Edu, 16 batches, same eval seed for A/B. Positive A-B means B is better.
-
-| Slice | A NLL | B NLL | A-B |
-|---|---:|---:|---:|
-| Global | 2.972447 | 2.975272 | -0.002825 |
-| Repeated 2/3-gram | 1.083465 | 1.107236 | -0.023771 |
-| Entity proxy | 4.471435 | 4.455587 | +0.015848 |
-
-Interpretation: entity-proxy tokens favor B, but repeated n-grams and global loss favor A. This does not meet the slice criterion of clear targeted-slice improvement with slice-gap > global-gap.
-
-## Depth Probe
-
-Held-out h4, 2,048 sampled positions. Lower earliest layer means earlier resolution.
-For the cumulative resolved columns, negative A-B means B resolved more positions by that layer.
-
-| Arm | Mean earliest layer | Median earliest layer | Resolved by layer 18 | Resolved by layer 19 |
-|---|---:|---:|---:|---:|
-| A | 16.455078 | 19.0 | 0.495605 | 0.650879 |
-| B | 16.454102 | 18.0 | 0.502930 | 0.664551 |
-| A-B | +0.000977 | +1.0 | -0.007324 | -0.013672 |
-
-Interpretation: B median is one layer earlier and layer-18/19 cumulative resolution is slightly higher, but mean depth is effectively tied. Supportive at most, not decisive.
-
-## Gate / Contribution Diagnostics
-
-The gate is not suppressed: alpha is saturated near 1.0 at both Engram layers. Contribution is small but grows by the endpoint.
-
-| Checkpoint | Layer | Alpha mean | Contribution/hidden RMS | Final hidden delta RMS | Last-logit abs delta mean |
-|---|---:|---:|---:|---:|---:|
-| B step 959 | 2 | 1.000000 | 0.001103 | 0.041301 | 0.050603 |
-| B step 959 | 6 | 0.999051 | 0.003903 | 0.041301 | 0.050603 |
-| B step 5027 | 2 | 1.000000 | 0.001303 | 0.079599 | 0.119674 |
-| B step 5027 | 6 | 0.999448 | 0.008297 | 0.079599 | 0.119674 |
-
-Interpretation: this is not a dead-path bug. The path changes hidden/logits and grows during training, but it is not load-bearing for factual recall in the repeated-data pair-1 regime.
-
-## Decision vs Handoff Criteria
-
-- PASS criterion 1, knockout: **fail**. No substantial degradation; answer-NLL improves slightly under knockout.
-- PASS criterion 2, targeted slices: **fail/mixed**. Entity proxy favors B, repeated n-gram and global favor A.
-- Depth: weakly supportive in median only; not enough to rescue primary failures.
-- Global loss: secondary and underpowered; pair-1 h4 global A-B is -0.002825, so B is slightly worse on this sample.
+- **Tier-1 mechanism verdict:** pending. A recall-vs-R and frozen R are not available until A-only pilot evals complete.
+- **Bug gate:** pending for the registered B run. No B-knockout number exists yet.
+- **Tier-2 natural-data verdict:** pending and intentionally not started until Tier-1 and gates justify it.
+- **Loss gap:** not reported as verdict evidence at this stage.
 
 ## Next Action
 
-Do not spend phase 2 on repeated-stream seeds. Following the handoff adaptive rule and `feedback/review-20260629T0356Z.md`, pivot to a fresh h4 unique-data paired run. I removed only the obsolete B step-959 checkpoint after saving diagnostics, restored free space, and launched h4 A/seed 2024 as Slurm job `165367`. If it completes, launch h4 B/seed 2024 with the exact same h4 token stream, world size, batch, optimizer, precision, and 5,027-step endpoint. For h4-pair evaluation, do **not** reuse h4 as held-out; create a new document-ID-aware held-out tranche or run token/ngram decontamination first, per `feedback/review-20260629T0432Z.md`.
+Let R=1,2,4,8,16 finish and allow their dependent eval jobs to run. Submit R=32 only after one 2-node training allocation frees, to keep this objective at or below 80 active H100. Then build the recall-vs-R table, freeze R pre-hoc from A-only recall, and proceed to the registered Tier-1 A/B/B-knockout run.

@@ -1,3 +1,12 @@
+# H11.6 - current preliminary status updated
+
+- Timestamp: 2026-07-01T16:21:11Z.
+- Elapsed: H11.6 for the v3 resumed objective.
+- Updated `progress/PRELIMINARY.md` to supersede the old June 29 pair-1 preliminary with the current v3 honest status: no Engram verdict yet, because the 5B/R A-only R-pilot is still training and no recall-vs-R, frozen R, registered A/B, B-knockout, paired NLL, McNemar, or Tier-2 result exists yet.
+- Current operational evidence is positive only for apparatus/runtime health: data gate passed, injected-fact streams exist, compile-cache failure fixed, five R-pilot trains are stable, and logs show no OOM/traceback/stale-cache failure.
+- Active H100 usage remains 80 H100 for this objective. R=32 remains held until one 2-node train frees resources.
+- Next: continue monitoring to completion/eval, then freeze R from A-only recall and proceed to registered Tier-1.
+
 # H11.5 - 5B R-pilot mid-run healthy
 
 - Timestamp: 2026-07-01T16:19:45Z.
