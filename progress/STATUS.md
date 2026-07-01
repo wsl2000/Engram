@@ -1,3 +1,15 @@
+# H15.0 - R8 eval succeeded; recall rises but no knockout collapse
+
+- Timestamp: 2026-07-01T19:45:54Z.
+- Elapsed: H15.0 for the v3 resumed objective.
+- R=8 train `173044` completed successfully (`0:0`) in `04:15:57`; final checkpoint `runs/tier1_A_rpilot_R8_2node_5b_compile/ckpt_step006358.pt` is present and complete at 28,030,761,871 bytes.
+- R=8 eval `173045` completed successfully (`0:0`) in `00:03:28` with `TimeLimit=01:00:00`, `ReqMem=220G`.
+- R=8 eval artifacts are present: `results/tier1/rpilot_A_R8_2node_5b_compile.csv` and `results/tier1/rpilot_A_R8_2node_5b_compile.json`.
+- R=8 result: main `records=4500`, `normal_em=0.0064444444`, `knockout_em=0.0071111111`, `em_collapse=-0.0006666667`, `mean_delta_knockout_minus_normal=-0.0004969736`, McNemar `b=1/c=4/p=0.375`; negative controls `records=500`, `normal_em=0`, `knockout_em=0`.
+- Recall is now nonzero at R=8, but knockout does not collapse recall; it is slightly higher than normal at this point. This remains pilot evidence only, not a Tier-1 mechanism verdict.
+- Active H100 usage for this objective is now 32 H100: R=16/R=32 trains are running. R=1/2/4/8 are complete.
+- Next: monitor R=16 completion/eval `173050`, then R=32; aggregate recall-vs-R after all pilot evals complete.
+
 # H14.8 - R4 eval succeeded; recall still near zero
 
 - Timestamp: 2026-07-01T19:37:10Z.
