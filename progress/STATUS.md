@@ -1,3 +1,13 @@
+# H1.6 - 128-H100 node preflight queued
+
+- Elapsed: H1.6 for the v3 resumed objective.
+- Active run: Slurm job `168251` (`engram-node-preflight-128`) submitted for 16 nodes / 128 H100, 15-minute node preflight.
+- Job state: `PENDING (Resources)` at latest check. Backfill estimate: start `2026-07-01T16:30:54Z`, end `2026-07-01T16:45:54Z`.
+- Requested/excluded nodes: request is `gres/gpu:h100=128`, `--nodes=16`, excluding `cn02,cn10,cn17,cn34`. Scheduler candidate list is `cn[09,14-15,18-20,24-26,28-33,35]`.
+- Resource note: current cluster snapshot had only 15 fully idle H100 nodes after exclusions, so pending is expected; job is short and should not consume GPUs until all 16 nodes are available.
+- Feedback loop: no new feedback after latest push/pull.
+- Next after allocation: inspect per-node JSON under `progress/results/node_preflight/`; if clean, run 128-H100 compile/fused-CE calibration before Tier-1 train jobs.
+
 # H1.5 - Tier-1 mixed-stream builder and decision aggregator passed
 
 - Elapsed: H1.5 for the v3 resumed objective.
