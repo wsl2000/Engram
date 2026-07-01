@@ -18,6 +18,7 @@ TRAIN_MEM="${TRAIN_MEM:-1800G}"
 TRAIN_NODES="${TRAIN_NODES:-16}"
 EVAL_TIME="${EVAL_TIME:-01:00:00}"
 EVAL_MEM="${EVAL_MEM:-220G}"
+RUN_SUFFIX="${RUN_SUFFIX:-}"
 TRAIN_DEP_ARGS=()
 if [[ -n "${TRAIN_DEPENDENCY:-}" ]]; then
   TRAIN_DEP_ARGS+=(--dependency="${TRAIN_DEPENDENCY}")
@@ -29,8 +30,8 @@ mkdir -p progress/logs results/tier1 runs
 IFS=',' read -r -a R_ARRAY <<< "${R_VALUES}"
 for R in "${R_ARRAY[@]}"; do
   STREAM_DIR="data/tier1/rpilot_R${R}_tokens${TARGET_TOKENS}"
-  RUN_DIR="runs/tier1_A_rpilot_R${R}"
-  OUT_PREFIX="results/tier1/rpilot_A_R${R}"
+  RUN_DIR="runs/tier1_A_rpilot_R${R}${RUN_SUFFIX}"
+  OUT_PREFIX="results/tier1/rpilot_A_R${R}${RUN_SUFFIX}"
   echo "preparing R=${R} stream at ${STREAM_DIR}" >&2
   PYTHONPATH=src python scripts/build_tier1_stream.py \
     --facts-csv "${FACTS_CSV}" \

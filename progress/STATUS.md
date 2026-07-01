@@ -1,3 +1,15 @@
+# H9.6 - R4+ submitter repaired; R1/R2 running
+
+- Timestamp: 2026-07-01T14:32:07Z.
+- Elapsed: H9.6 for the v3 resumed objective.
+- Active H100 usage now: 32 H100 allocated by this resumed objective. R=1 train `172713` is running on `cn[13-14]` and R=2 train `172715` is running on `cn[31-32]`; each uses 2 nodes / 16 H100 with `TimeLimit=20:00:00`, `MinMemoryNode=1800G`, `STEPS=25432`, `micro_batch_size=4`, and `grad_accum=6`.
+- Training progress: R=1 reached step 723 / 25,432, `tokens_seen=568,590,336`, ~304k tok/s, MFU ~0.065; R=2 reached step 725 / 25,432, `tokens_seen=570,163,200`, ~304k tok/s, MFU ~0.065. First checkpoints exist: `runs/tier1_A_rpilot_R1_2node/ckpt_step000570.pt` and `runs/tier1_A_rpilot_R2_2node/ckpt_step000571.pt`.
+- Anomaly: CPU submitter `172717` failed while submitting R=4 train with `sbatch: ... Job dependency problem`; it was carrying the now-stale `afterok:172706` dependency even though the 2-node preflight had already passed. No training job was emitted from that failed submitter.
+- Correction: added `RUN_SUFFIX` support to `scripts/submit_tier1_r_pilot.sh` so R=4/8/16/32 use `_2node` run/result paths. Submitted replacement CPU submitter `172750` with no train dependency, `RUN_SUFFIX=_2node`, `TRAIN_NODES=2`, `TRAIN_TIME=20:00:00`, `TRAIN_MEM=1800G`, `EVAL_TIME=01:00:00`, and `EVAL_MEM=220G`; the submitter itself has `TimeLimit=08:00:00` and `MinMemoryNode=512G`.
+- Queue: 128-H100 node preflight `168251` remains pending for Tier-2/MFU work. Eval jobs `172714` and `172716` are pending on their corresponding train dependencies.
+- Disk: `data/tier1` is 224G; R1 and R2 run dirs are 27G each; VAST has 17T free.
+- Next: monitor `172750` until it emits R=4/8/16/32 train/eval job IDs, verify each emitted train job has 2 nodes / 16 H100, `TimeLimit=20:00:00`, and `MinMemoryNode=1800G`, then push the updated job table.
+
 # H9.0 - 2-node preflight passed; Tier-1 requeued with 20h limit
 
 - Timestamp: 2026-07-01T13:57:45Z.
