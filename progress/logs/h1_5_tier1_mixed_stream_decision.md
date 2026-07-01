@@ -1,0 +1,31 @@
+# H1.5 Tier-1 mixed stream and decision aggregation
+
+- Added `src/engram/tier1.py`.
+  - Reads token lists.
+  - Builds mixed base+injected Tier-1 streams with doc IDs.
+  - Provides Tier-1 decision aggregation for A-normal / B-normal / B-knockout.
+- Added `scripts/build_tier1_stream.py`.
+  - Inputs facts CSV, R/repeats, optional base token list, base chunk size, target tokens.
+  - Outputs uint32 shards, `docs.jsonl`, `shards.csv`, `shards.txt`, and `summary.json`.
+- Added `scripts/decide_tier1.py`.
+  - Inputs A eval CSV, B eval CSV, B normal/knockout summary JSON.
+  - Outputs PASS/FAIL for handoff §4(a)(b)(c).
+  - Explicitly labels scope as Tier-1 mechanism/param-efficiency, not paper natural-data verification.
+- Fixed local parquet tokenizer to write `shards.txt`.
+- Smoke outputs:
+  - `progress/results/tier1_mixed_stream_smoke/summary.json`
+  - `progress/results/tier1_decision_smoke/decision.json`
+- Mixed stream smoke:
+  - 10,000 tokens
+  - 953 docs
+  - 477 base docs
+  - 476 injected docs
+  - 3 shards
+- Decision smoke:
+  - PASS true
+  - main B-A EM gap 1.0
+  - negative-control B-A EM gap 0.0
+  - scope correctly states this is not paper natural-data verification.
+- Validation:
+  - `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`
+  - `PYTHONPATH=src pytest -q` -> 18 passed, 1 skipped

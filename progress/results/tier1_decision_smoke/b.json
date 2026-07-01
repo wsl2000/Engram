@@ -1,0 +1,16 @@
+{
+  "main": {
+    "mean_delta_knockout_minus_normal": 9.0,
+    "em_collapse": 1.0,
+    "mcnemar_exact_p": 1e-09,
+    "normal_em": 1.0,
+    "knockout_em": 0.0
+  },
+  "negative_control": {
+    "mean_delta_knockout_minus_normal": 0.0,
+    "em_collapse": 0.0,
+    "mcnemar_exact_p": 1.0,
+    "normal_em": 0.0,
+    "knockout_em": 0.0
+  }
+}

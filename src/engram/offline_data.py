@@ -187,6 +187,8 @@ def tokenize_local_parquet(
         w.writeheader()
         for rec in shard_records:
             w.writerow(rec.__dict__)
+    shard_list_path = out / "shards.txt"
+    shard_list_path.write_text("\n".join(rec.path for rec in shard_records) + ("\n" if shard_records else ""))
     summary = {
         "parquet_glob": parquet_glob,
         "output_dir": str(out),
@@ -196,6 +198,7 @@ def tokenize_local_parquet(
         "token_count": total_tokens,
         "shard_count": len(shard_records),
         "shard_manifest": str(shard_manifest_path),
+        "token_list": str(shard_list_path),
         "doc_manifest": str(doc_manifest_path),
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2))

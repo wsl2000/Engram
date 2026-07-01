@@ -1,0 +1,1 @@
+progress/results/local_parquet_smoke/tokens/shard_000000.u32

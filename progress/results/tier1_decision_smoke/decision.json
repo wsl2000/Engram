@@ -1,0 +1,37 @@
+{
+  "tier": "Tier-1",
+  "scope": "mechanism/param-efficiency positive control, not paper natural-data verification",
+  "a_csv": "progress/results/tier1_decision_smoke/a.csv",
+  "b_csv": "progress/results/tier1_decision_smoke/b.csv",
+  "b_summary_json": "progress/results/tier1_decision_smoke/b.json",
+  "main_b_knockout": {
+    "mean_delta_knockout_minus_normal": 9.0,
+    "em_collapse": 1.0,
+    "mcnemar_exact_p": 1e-09,
+    "normal_em": 1.0,
+    "knockout_em": 0.0
+  },
+  "negative_control_b_knockout": {
+    "mean_delta_knockout_minus_normal": 0.0,
+    "em_collapse": 0.0,
+    "mcnemar_exact_p": 1.0,
+    "normal_em": 0.0,
+    "knockout_em": 0.0
+  },
+  "a_main_em": 0.0,
+  "b_main_em": 1.0,
+  "main_b_minus_a_em": 1.0,
+  "main_b_only": 90,
+  "main_a_only": 0,
+  "main_gap_mcnemar_p": 1.6155871338926322e-27,
+  "a_negative_control_em": 0.0,
+  "b_negative_control_em": 0.0,
+  "negative_control_b_minus_a_em": 0.0,
+  "negative_control_b_only": 0,
+  "negative_control_a_only": 0,
+  "negative_control_gap_mcnemar_p": 1.0,
+  "criterion_a_b_knockout_collapse": true,
+  "criterion_b_b_minus_a_margin": true,
+  "criterion_c_negative_control_specificity": true,
+  "pass": true
+}

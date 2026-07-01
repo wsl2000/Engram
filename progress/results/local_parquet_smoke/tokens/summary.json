@@ -7,5 +7,6 @@
   "token_count": 44,
   "shard_count": 1,
   "shard_manifest": "progress/results/local_parquet_smoke/tokens/shards.csv",
+  "token_list": "progress/results/local_parquet_smoke/tokens/shards.txt",
   "doc_manifest": "progress/results/local_parquet_smoke/tokens/docs.jsonl"
 }

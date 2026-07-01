@@ -1,0 +1,17 @@
+{
+  "output_dir": "progress/results/tier1_mixed_stream_smoke",
+  "token_count": 10000,
+  "doc_count": 953,
+  "base_docs": 477,
+  "injected_docs": 476,
+  "shard_count": 3,
+  "base_chunk_tokens": 16,
+  "target_tokens": 10000,
+  "doc_manifest": "progress/results/tier1_mixed_stream_smoke/docs.jsonl",
+  "shard_manifest": "progress/results/tier1_mixed_stream_smoke/shards.csv",
+  "token_list": "progress/results/tier1_mixed_stream_smoke/shards.txt",
+  "facts_csv": "data/injected_facts/facts_5000_seed17.csv",
+  "repeats": 1,
+  "split": "train",
+  "fact_count": 5000
+}

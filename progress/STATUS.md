@@ -1,3 +1,15 @@
+# H1.5 - Tier-1 mixed-stream builder and decision aggregator passed
+
+- Elapsed: H1.5 for the v3 resumed objective.
+- Active run: none.
+- Added Tier-1 registered-run support: `src/engram/tier1.py`, `scripts/build_tier1_stream.py`, and `scripts/decide_tier1.py`.
+- Mixed stream smoke: `scripts/build_tier1_stream.py` combined the local parquet token smoke shard with `data/injected_facts/facts_5000_seed17.csv` and wrote `progress/results/tier1_mixed_stream_smoke/`: 10,000 tokens, 953 docs, 477 base docs, 476 injected docs, 3 uint32 shards, `docs.jsonl`, `shards.csv`, and `shards.txt`.
+- Data interface fix: local parquet tokenizer now writes `shards.txt` in addition to `shards.csv`, so training/stream builders can consume it directly.
+- Tier-1 decision smoke: `scripts/decide_tier1.py` joined synthetic A/B eval rows and correctly reported Tier-1 PASS with scope `mechanism/param-efficiency positive control, not paper natural-data verification`.
+- Validation: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 18 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest push/pull.
+- Next: submit 16-node H100 node preflight when an allocation window is acceptable; then run 128-GPU calibration and registered Tier-1 A-only R pilot / A-B runs.
+
 # H1.2 - registered Tier-1 factset generated
 
 - Elapsed: H1.2 for the v3 resumed objective.
