@@ -1,3 +1,16 @@
+# H2.4 - corrected parquet scope to sample-350BT only
+
+- Timestamp: 2026-07-01T06:21:15Z.
+- Elapsed: H2.4 for the v3 resumed objective.
+- Anomaly: the first static parquet download used both `sample/350BT/*.parquet` and broad `**/*.parquet`, so Hugging Face began downloading `data/CC-MAIN-*` shards instead of the handoff-required FineWeb-Edu `sample/350BT` subset. At detection it had written 34 parquet files / 73.40GiB under `data/fineweb_edu_parquet/data/CC-MAIN-*`.
+- Fix: canceled wrong download `168254` and dependent tokenizer `168260`, removed the generated wrong-scope `data/fineweb_edu_parquet` contents, and patched `scripts/download_fineweb_parquet.py` plus `scripts/slurm_download_fineweb_parquet.sh` so the only default/Slurm allow-pattern is `sample/350BT/*.parquet`.
+- Relaunch: submitted corrected sample-350BT-only parquet download `168265` with explicit limits `--time=12:00:00 --mem=256G`; it is `RUNNING` on `cn09`, CPU-only. Submitted dependent tokenizer/data-gate job `168266` with `SBATCH_DEPENDENCY=afterok:168265`, parquet glob `data/fineweb_edu_parquet/sample/350BT/*.parquet`, and explicit limits `--time=18:00:00 --mem=1200G/node`; it is `PENDING (Dependency)`.
+- Active jobs: `168251` 128-H100 node preflight remains `PENDING (Resources)` and has no allocation. `168265` download is running CPU-only. `168266` tokenizer is dependency-pending CPU-only.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Validation: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `bash -n scripts/*.sh` passed; static time/mem audit remains clean.
+- Feedback loop: no new feedback after the H2.3 push/pull.
+- Next: push this anomaly/fix, pull feedback, monitor `168265`, and verify the first downloaded parquet paths are under `sample/350BT/` before allowing `168266` to run.
+
 # H2.3 - explicit Slurm mem/time limits audited
 
 - Timestamp: 2026-07-01T06:17:03Z.
