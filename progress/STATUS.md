@@ -1,3 +1,14 @@
+# H10.8 - R16 5B compile train running; capped pilot set launched
+
+- Timestamp: 2026-07-01T15:36:14Z.
+- Elapsed: H10.8 for the v3 resumed objective.
+- R=16 stream completed: `token_count=4,999,760,000`, `doc_count=160,000`, `shard_count=50`. R=16 train/eval jobs are `173049/173050`; train is running on `cn[18,26]` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; eval is pending on `afterok:173049` with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- R=16 compile/cache status: reached step 16 / 6,358, `tokens_seen=12,582,912`, `tokens_per_s=337,193`, MFU `0.0722`, `ce_impl=memory_efficient`; no local-cache Triton failure.
+- CPU submitter `172988` completed successfully (`0:0`, elapsed `00:37:41`, `TimeLimit=08:00:00`, `MinMemoryNode=512G`) after building and submitting R=2/4/8/16.
+- Active H100 usage now: 80 H100 allocated by this resumed objective: R=1 `172916`, R=2 `173037`, R=4 `173041`, R=8 `173044`, R=16 `173049`. There is also one unrelated same-user 1-H100 job `173043_0`, not touched. The 128-H100 preflight `168251` remains pending.
+- Disk: `data/tier1` is 317G. Run dirs are ~27G for R=1 and R=2 after first checkpoints; R=4/R=8/R=16 have not reached checkpoint windows yet.
+- Next: do not submit R=32 until one 2-node train finishes. Monitor all five trains for checkpoint/finish and allow dependent evals to run; then collect R-pilot recall and freeze R.
+
 # H10.6 - R8 5B compile train running
 
 - Timestamp: 2026-07-01T15:27:38Z.
