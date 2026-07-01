@@ -18,6 +18,10 @@ EVAL_TIME="${EVAL_TIME:-01:00:00}"
 EVAL_MEM="${EVAL_MEM:-220G}"
 DECIDE_TIME="${DECIDE_TIME:-00:10:00}"
 DECIDE_MEM="${DECIDE_MEM:-16G}"
+TRAIN_DEP_ARGS=()
+if [[ -n "${TRAIN_DEPENDENCY:-}" ]]; then
+  TRAIN_DEP_ARGS+=(--dependency="${TRAIN_DEPENDENCY}")
+fi
 
 cd /mnt/vast/workspaces/JAIF/dy/code/Engram
 mkdir -p progress/logs results/tier1 runs
@@ -35,8 +39,8 @@ PYTHONPATH=src python scripts/build_tier1_stream.py \
 
 A_RUN="runs/tier1_A_registered_R${FROZEN_R}"
 B_RUN="runs/tier1_B_registered_R${FROZEN_R}"
-A_JOB="$(sbatch --parsable --time="${TRAIN_TIME}" --mem="${TRAIN_MEM}" scripts/slurm_tier1_train.sh configs/generated/A_seed1337.json "${STREAM_DIR}/shards.txt" "${A_RUN}" "${STEPS}")"
-B_JOB="$(sbatch --parsable --time="${TRAIN_TIME}" --mem="${TRAIN_MEM}" scripts/slurm_tier1_train.sh configs/generated/B_seed1337.json "${STREAM_DIR}/shards.txt" "${B_RUN}" "${STEPS}")"
+A_JOB="$(sbatch --parsable "${TRAIN_DEP_ARGS[@]}" --time="${TRAIN_TIME}" --mem="${TRAIN_MEM}" scripts/slurm_tier1_train.sh configs/generated/A_seed1337.json "${STREAM_DIR}/shards.txt" "${A_RUN}" "${STEPS}")"
+B_JOB="$(sbatch --parsable "${TRAIN_DEP_ARGS[@]}" --time="${TRAIN_TIME}" --mem="${TRAIN_MEM}" scripts/slurm_tier1_train.sh configs/generated/B_seed1337.json "${STREAM_DIR}/shards.txt" "${B_RUN}" "${STEPS}")"
 CKPT_STEP="$(printf '%06d' "${STEPS}")"
 A_EVAL="$(sbatch --parsable --dependency="afterok:${A_JOB}" --time="${EVAL_TIME}" --mem="${EVAL_MEM}" scripts/slurm_tier1_eval.sh "${A_RUN}/ckpt_step${CKPT_STEP}.pt" "${FACTS_CSV}" results/tier1/registered_A_R${FROZEN_R})"
 B_EVAL="$(sbatch --parsable --dependency="afterok:${B_JOB}" --time="${EVAL_TIME}" --mem="${EVAL_MEM}" scripts/slurm_tier1_eval.sh "${B_RUN}/ckpt_step${CKPT_STEP}.pt" "${FACTS_CSV}" results/tier1/registered_B_R${FROZEN_R})"
@@ -49,6 +53,7 @@ DECIDE_JOB="$(sbatch --parsable --dependency="afterok:${A_EVAL}:${B_EVAL}" --job
   echo "A_EVAL=${A_EVAL}"
   echo "B_EVAL=${B_EVAL}"
   echo "DECIDE_JOB=${DECIDE_JOB}"
+  echo "TRAIN_DEPENDENCY=${TRAIN_DEPENDENCY:-none}"
   echo "TRAIN_LIMIT=${TRAIN_TIME}/${TRAIN_MEM}"
   echo "EVAL_LIMIT=${EVAL_TIME}/${EVAL_MEM}"
   echo "DECIDE_LIMIT=${DECIDE_TIME}/${DECIDE_MEM}"

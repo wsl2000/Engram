@@ -1,3 +1,14 @@
+# H7.4 - Tier-1 submit path hardened before launch
+
+- Timestamp: 2026-07-01T12:20:00Z.
+- Elapsed: H7.4 for the v3 resumed objective.
+- Change: added `TRAIN_DEPENDENCY` support to `scripts/submit_tier1_r_pilot.sh` and `scripts/submit_tier1_registered.sh`, so Tier-1 train jobs can be queued with `--dependency=afterok:168251` and cannot start before node preflight succeeds.
+- Change: added `scripts/slurm_submit_tier1_r_pilot.sh`, a CPU Slurm wrapper for Tier-1 R-pilot stream construction and train/eval submission. It runs with explicit `--time=08:00:00 --mem=512G`, so large stream construction does not run unbounded on the login node.
+- Validation: `bash -n scripts/*.sh`, `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`, and static time/mem audit passed.
+- Active jobs: only `168251` 128-H100 node preflight remains pending; no H100 allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Next: push this hardening, then submit Tier-1 A-only R-pilot stream builder under Slurm with `TRAIN_DEPENDENCY=afterok:168251`.
+
 # H7.3 - official 300B data gate passed
 
 - Timestamp: 2026-07-01T12:15:01Z.
