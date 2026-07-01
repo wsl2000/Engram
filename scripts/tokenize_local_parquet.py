@@ -17,6 +17,8 @@ def main() -> None:
     parser.add_argument("--tokens-per-shard", type=int, default=100_000_000)
     parser.add_argument("--max-tokens", type=int)
     parser.add_argument("--batch-docs", type=int, default=256)
+    parser.add_argument("--num-workers", type=int, default=1)
+    parser.add_argument("--worker-index", type=int, default=0)
     args = parser.parse_args()
     summary = tokenize_local_parquet(
         parquet_glob=args.parquet_glob,
@@ -27,6 +29,8 @@ def main() -> None:
         tokens_per_shard=args.tokens_per_shard,
         max_tokens=args.max_tokens,
         batch_docs=args.batch_docs,
+        num_workers=args.num_workers,
+        worker_index=args.worker_index,
     )
     print(json.dumps(summary, indent=2))
 

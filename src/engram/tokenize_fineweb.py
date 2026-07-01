@@ -30,8 +30,6 @@ def main() -> None:
     parser.add_argument("--worker-index", type=int, default=0)
     parser.add_argument("--skip-tokens", type=int, default=0)
     args = parser.parse_args()
-    if args.num_workers != 1 or args.worker_index != 0:
-        raise SystemExit("local parquet tokenizer is single-process per invocation; shard parquet globs at the scheduler level")
     if args.skip_tokens:
         raise SystemExit("skip-tokens is deprecated; build doc-ID-disjoint parquet/token pools instead")
     summary = tokenize_local_parquet(
@@ -43,6 +41,8 @@ def main() -> None:
         tokens_per_shard=args.tokens_per_shard,
         max_tokens=args.max_tokens,
         batch_docs=args.batch_docs,
+        num_workers=args.num_workers,
+        worker_index=args.worker_index,
     )
     print(json.dumps(summary, indent=2))
 

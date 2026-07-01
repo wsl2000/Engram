@@ -1,0 +1,15 @@
+{
+  "parquet_glob": "progress/results/local_parquet_smoke/source/*.parquet",
+  "output_dir": "progress/results/parallel_tokenizer_smoke/worker_0",
+  "tokenizer": "deepseek-ai/DeepSeek-V3",
+  "dtype": "uint32",
+  "num_workers": 2,
+  "worker_index": 0,
+  "parquet_files": 1,
+  "doc_count": 3,
+  "token_count": 44,
+  "shard_count": 1,
+  "shard_manifest": "progress/results/parallel_tokenizer_smoke/worker_0/shards.csv",
+  "token_list": "progress/results/parallel_tokenizer_smoke/worker_0/shards.txt",
+  "doc_manifest": "progress/results/parallel_tokenizer_smoke/worker_0/docs.jsonl"
+}

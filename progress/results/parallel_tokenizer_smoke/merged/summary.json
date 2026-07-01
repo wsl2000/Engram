@@ -1,0 +1,15 @@
+{
+  "output_dir": "progress/results/parallel_tokenizer_smoke/merged",
+  "dtype": "uint32",
+  "worker_dirs": [
+    "progress/results/parallel_tokenizer_smoke/worker_0",
+    "progress/results/parallel_tokenizer_smoke/worker_1"
+  ],
+  "parquet_files": 1,
+  "doc_count": 3,
+  "token_count": 44,
+  "shard_count": 1,
+  "shard_manifest": "progress/results/parallel_tokenizer_smoke/merged/shards.csv",
+  "token_list": "progress/results/parallel_tokenizer_smoke/merged/shards.txt",
+  "doc_manifest": "progress/results/parallel_tokenizer_smoke/merged/docs.jsonl"
+}

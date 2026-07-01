@@ -67,12 +67,42 @@ def tokenize_local_parquet(
     max_tokens: int | None = None,
     eos_token_id: int | None = None,
     batch_docs: int = 256,
+    num_workers: int = 1,
+    worker_index: int = 0,
 ) -> dict[str, object]:
     from transformers import AutoTokenizer
 
-    paths = sorted(glob.glob(parquet_glob))
+    paths = sorted(glob.glob(parquet_glob, recursive=True))
     if not paths:
         raise FileNotFoundError(f"no parquet files matched {parquet_glob!r}")
+    if not 0 <= worker_index < num_workers:
+        raise ValueError("worker_index must be in [0, num_workers)")
+    paths = [path for i, path in enumerate(paths) if i % num_workers == worker_index]
+    if not paths:
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "docs.jsonl").write_text("")
+        with (out / "shards.csv").open("w", newline="") as f:
+            csv.DictWriter(f, fieldnames=["path", "token_count", "first_doc_id", "last_doc_id"]).writeheader()
+        (out / "shards.txt").write_text("")
+        summary = {
+            "parquet_glob": parquet_glob,
+            "output_dir": str(out),
+            "tokenizer": tokenizer_name,
+            "dtype": "uint32",
+            "num_workers": num_workers,
+            "worker_index": worker_index,
+            "parquet_files": 0,
+            "doc_count": 0,
+            "token_count": 0,
+            "shard_count": 0,
+            "shard_manifest": str(out / "shards.csv"),
+            "token_list": str(out / "shards.txt"),
+            "doc_manifest": str(out / "docs.jsonl"),
+            "empty_worker": True,
+        }
+        (out / "summary.json").write_text(json.dumps(summary, indent=2))
+        return summary
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     tok = AutoTokenizer.from_pretrained(tokenizer_name, trust_remote_code=True)
@@ -194,6 +224,9 @@ def tokenize_local_parquet(
         "output_dir": str(out),
         "tokenizer": tokenizer_name,
         "dtype": "uint32",
+        "num_workers": num_workers,
+        "worker_index": worker_index,
+        "parquet_files": len(paths),
         "doc_count": doc_count,
         "token_count": total_tokens,
         "shard_count": len(shard_records),
@@ -251,4 +284,53 @@ def assert_data_gate(output_dir: str | Path, min_tokens: int = 200_000_000_000) 
     summary["gate_passed"] = True
     summary["gate_shard_token_sum"] = shard_token_sum
     summary["gate_doc_manifest_lines"] = doc_manifest_lines
+    return summary
+
+
+def merge_tokenized_outputs(worker_dirs: list[str | Path], output_dir: str | Path) -> dict[str, object]:
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    shard_rows = []
+    token_count = 0
+    doc_count = 0
+    parquet_files = 0
+    with (out / "docs.jsonl").open("w") as docs_out:
+        for worker_dir in worker_dirs:
+            worker = Path(worker_dir)
+            summary_path = worker / "summary.json"
+            shards_path = worker / "shards.csv"
+            docs_path = worker / "docs.jsonl"
+            if not summary_path.exists() or not shards_path.exists() or not docs_path.exists():
+                raise FileNotFoundError(f"incomplete tokenized worker dir: {worker}")
+            summary = json.loads(summary_path.read_text())
+            token_count += int(summary["token_count"])
+            doc_count += int(summary["doc_count"])
+            parquet_files += int(summary.get("parquet_files", 0))
+            with shards_path.open(newline="") as f:
+                for row in csv.DictReader(f):
+                    shard_rows.append(row)
+            with docs_path.open() as f:
+                for line in f:
+                    if line.strip():
+                        docs_out.write(line)
+    with (out / "shards.csv").open("w", newline="") as f:
+        fieldnames = ["path", "token_count", "first_doc_id", "last_doc_id"]
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
+        for row in shard_rows:
+            w.writerow({k: row.get(k, "") for k in fieldnames})
+    (out / "shards.txt").write_text("\n".join(row["path"] for row in shard_rows) + ("\n" if shard_rows else ""))
+    summary = {
+        "output_dir": str(out),
+        "dtype": "uint32",
+        "worker_dirs": [str(Path(x)) for x in worker_dirs],
+        "parquet_files": parquet_files,
+        "doc_count": doc_count,
+        "token_count": token_count,
+        "shard_count": len(shard_rows),
+        "shard_manifest": str(out / "shards.csv"),
+        "token_list": str(out / "shards.txt"),
+        "doc_manifest": str(out / "docs.jsonl"),
+    }
+    (out / "summary.json").write_text(json.dumps(summary, indent=2))
     return summary

@@ -1,0 +1,15 @@
+{
+  "parquet_glob": "progress/results/local_parquet_smoke/**/*.parquet",
+  "output_dir": "progress/results/recursive_glob_smoke",
+  "tokenizer": "deepseek-ai/DeepSeek-V3",
+  "dtype": "uint32",
+  "num_workers": 1,
+  "worker_index": 0,
+  "parquet_files": 1,
+  "doc_count": 3,
+  "token_count": 44,
+  "shard_count": 1,
+  "shard_manifest": "progress/results/recursive_glob_smoke/shards.csv",
+  "token_list": "progress/results/recursive_glob_smoke/shards.txt",
+  "doc_manifest": "progress/results/recursive_glob_smoke/docs.jsonl"
+}

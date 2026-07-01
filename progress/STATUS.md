@@ -1,3 +1,16 @@
+# H2.2 - parallel tokenizer pipeline queued behind download
+
+- Timestamp: 2026-07-01T06:14:21Z.
+- Elapsed: H2.2 for the v3 resumed objective.
+- Active jobs: `168254` (`engram-parquet-download`) is `RUNNING` on `cn34`, CPU-only (`cpu=16,mem=256G`, no GPU TRES), elapsed 7m at latest check. `168260` (`engram-tokenize-local`) is `PENDING (Dependency)` on `afterok:168254`, 4 nodes / 16 CPU workers / no GPU TRES. `168251` 128-H100 node preflight remains `PENDING (Resources)`.
+- H100 usage now: 0 H100 allocated by the current resumed objective. The only H100 request is pending node preflight `168251`; it has not started.
+- Data progress: static FineWeb-Edu parquet download has reached 26 parquet files / 56G under `data/fineweb_edu_parquet`.
+- Tokenizer progress: local parquet tokenizer now supports recursive `**/*.parquet` globs and deterministic multi-worker parquet sharding (`i % num_workers == worker_index`), writes valid empty manifests for empty workers, and has a merge step that reconstructs root `docs.jsonl`, `shards.csv`, `shards.txt`, and `summary.json` before the >=200B data gate.
+- Slurm orchestration: `scripts/slurm_tokenize_fineweb.sh` now submits 16 CPU tokenizer tasks by default, supports `SBATCH_DEPENDENCY`, merges worker outputs, and immediately runs `scripts/assert_data_gate.py --min-tokens 200000000000` on the merged token pool.
+- Validation: recursive glob smoke passed with 3 docs / 44 tokens; two-worker tokenizer smoke including one empty worker merged correctly and passed the data gate with `--min-tokens 1`. `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`, `bash -n scripts/slurm_tokenize_fineweb.sh scripts/slurm_download_fineweb_parquet.sh`, and `PYTHONPATH=src pytest -q` passed (19 passed, 1 skipped).
+- Feedback loop: no new feedback files beyond `feedback/review-20260629T1032Z.md`.
+- Next: push this progress bundle, pull feedback, then monitor `168254`. If download completes successfully, allow `168260` to start automatically and watch merge/data-gate output. Do not start Tier-2 until the >=200B data gate and MFU gate pass.
+
 # H2.1 - offline parquet download started
 
 - Elapsed: H2.1 for the v3 resumed objective.

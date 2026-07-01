@@ -1,0 +1,2 @@
+path,token_count,first_doc_id,last_doc_id
+progress/results/parallel_tokenizer_smoke/worker_0/shard_000000.u32,44,doc-0,2
