@@ -1,3 +1,13 @@
+# H1.7 - local memory-efficient linear CE backend added
+
+- Elapsed: H1.7 for the v3 resumed objective.
+- Active run: node preflight job `168251` remains `PENDING (Resources)`, no GPUs allocated.
+- CE progress: added a local recompute/autograd `memory_efficient` linear-CE backend in `src/engram/losses.py`. `ENGRAM_CE_IMPL=auto` now tries external cut-cross-entropy/Liger first and then uses the local memory-efficient backend instead of the old logits-saving chunked CE. The old chunked CE remains available via `ENGRAM_CE_IMPL=chunked`.
+- Logging: training metrics now include `ce_impl`.
+- Validation: memory-efficient CE matches chunked CE loss and gradients in tests; `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 19 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest push/pull.
+- Next: wait for node preflight allocation; if clean, run compile+CE calibration and check MFU gate before any Tier-2 work. Tier-1 can run pre-gate once R pilot streams/jobs are submitted.
+
 # H1.6 - 128-H100 node preflight queued
 
 - Elapsed: H1.6 for the v3 resumed objective.

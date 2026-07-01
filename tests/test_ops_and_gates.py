@@ -31,3 +31,20 @@ def test_linear_cross_entropy_fallback_backward():
     loss.backward()
     assert hidden.grad is not None
     assert weight.grad is not None
+
+
+def test_memory_efficient_linear_cross_entropy_matches_chunked():
+    torch.manual_seed(0)
+    hidden_a = torch.randn(2, 4, 6, requires_grad=True)
+    hidden_b = hidden_a.detach().clone().requires_grad_(True)
+    weight_a = torch.randn(9, 6, requires_grad=True)
+    weight_b = weight_a.detach().clone().requires_grad_(True)
+    labels = torch.randint(0, 9, (2, 4))
+    labels[0, 0] = -100
+    loss_a = linear_cross_entropy(hidden_a, weight_a, labels, chunk_tokens=3, implementation="chunked")
+    loss_b = linear_cross_entropy(hidden_b, weight_b, labels, chunk_tokens=3, implementation="memory_efficient")
+    assert torch.allclose(loss_a, loss_b, atol=1e-6, rtol=1e-6)
+    loss_a.backward()
+    loss_b.backward()
+    assert torch.allclose(hidden_a.grad, hidden_b.grad, atol=1e-5, rtol=1e-5)
+    assert torch.allclose(weight_a.grad, weight_b.grad, atol=1e-5, rtol=1e-5)

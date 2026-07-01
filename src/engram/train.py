@@ -252,6 +252,7 @@ def main() -> None:
             "arm": cfg["arm"],
             "seed": cfg["seed"],
             "moe_backend": os.environ.get("ENGRAM_MOE_BACKEND", "loop").lower(),
+            "ce_impl": os.environ.get("ENGRAM_CE_IMPL", "auto").lower(),
             "ce_chunk_tokens": raw_model.ce_chunk_tokens,
             "micro_batch_size": micro_bsz,
             "grad_accum_steps": grad_accum,
