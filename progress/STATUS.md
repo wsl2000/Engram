@@ -1,3 +1,14 @@
+# H7.5 - Tier-1 R-pilot submitter running
+
+- Timestamp: 2026-07-01T12:19:06Z.
+- Elapsed: H7.5 for the v3 resumed objective.
+- Submitted job: `171792` (`engram-tier1-rpilot-submit`) is `RUNNING` on `cn09`, CPU-only, explicit `TimeLimit=08:00:00`, `MinMemoryNode=512G`, 16 CPUs. It is building Tier-1 A-only R-pilot streams from `data/injected_facts/facts_5000_seed17.csv` and `data/fineweb_edu_deepseek_v3_300b/merged/shards.txt`.
+- R-pilot settings: `R_VALUES=1,2,4,8,16,32`, `TARGET_TOKENS=20000000000`, `STEPS=3179`, config `configs/generated/A_seed1337.json`. This is Tier-1 pre-gate work and does not wait for MFU/Tier-2 gates.
+- Dependency discipline: `TRAIN_DEPENDENCY=afterok:168251` was exported at submission, so the train jobs emitted by the submitter should wait for the 128-H100 node preflight to pass before starting. Eval jobs remain dependent on their corresponding train jobs.
+- Active jobs: `171792` CPU submitter running; `168251` node preflight pending with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Next: monitor `171792` for stream summaries and emitted train/eval job IDs in `progress/results/tier1_rpilot_jobs.tsv`; verify queued train jobs carry the `afterok:168251` dependency.
+
 # H7.4 - Tier-1 submit path hardened before launch
 
 - Timestamp: 2026-07-01T12:20:00Z.
