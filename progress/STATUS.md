@@ -1,3 +1,18 @@
+# H18.6 - R-pilot complete; freeze R=16
+
+- Timestamp: 2026-07-01T23:35:00Z.
+- Elapsed: H18.6 for the v3 resumed objective.
+- Feedback loop: `git fetch origin` found no new remote feedback beyond `feedback/review-20260701T2025Z.md`; branch was synchronized before this milestone commit.
+- R=32 train `173143` completed successfully (`0:0`) in `04:15:47` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `ReqMem=3600G` total / `MinMemoryNode=1800G`; final checkpoint `runs/tier1_A_rpilot_R32_2node_5b_compile/ckpt_step006358.pt` is complete at 28,030,761,871 bytes.
+- R=32 eval `173144` completed successfully (`0:0`) in `00:03:32` with 1 H100, `TimeLimit=01:00:00`, `ReqMem=220G`.
+- R=32 result: main `records=4500`, `normal_em=0.1542222222`, `knockout_em=0.1537777778`, `em_collapse=0.0004444444`, `mean_delta_knockout_minus_normal=0.0000570976`, McNemar `b=19/c=17/p=0.8679394004`; negative controls `records=500`, `normal_em=0`, `knockout_em=0`.
+- R-pilot recall trend at 5B tokens, A-only: R=1 `0.0002222222`, R=2 `0.0002222222`, R=4 `0.0008888889`, R=8 `0.0064444444`, R=16 `0.0406666667`, R=32 `0.1542222222`.
+- Freeze decision: apply the latest feedback rule and freeze registered Tier-1 at R=16. R=16 is the largest tested R below the ~8-10% A-recall backbone-hard bound; R=32 exceeds it at 15.42%.
+- New artifact: `results/tier1/rpilot_summary_2node_5b_compile.csv` records the recall-vs-R pilot and the freeze eligibility decision.
+- Active H100 usage for this objective is 0. The old 128-H100 preflight job `168251` remains pending only and consumes no GPU; the visible 1-H100 `geowam` job is unrelated and untouched.
+- Disk: `/mnt/vast` has 2.5P free; `/tmp` has 238G free.
+- Next: submit registered Tier-1 A+B at frozen R=16 with explicit Slurm limits (`TRAIN_TIME=08:00:00`, `TRAIN_MEM=1800G` per node unless the script requires a tighter value; eval `TimeLimit=01:00:00`, `Mem=220G`), then run B-knockout and targeted slices for the mechanism verdict.
+
 # H17.6 - R32 train healthy at 3.89B tokens
 
 - Timestamp: 2026-07-01T22:31:16Z.
