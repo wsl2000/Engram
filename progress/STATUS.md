@@ -1,3 +1,13 @@
+# H2.1 - offline parquet download started
+
+- Elapsed: H2.1 for the v3 resumed objective.
+- Active jobs: `168251` node preflight remains `PENDING (Resources)` with no GPU allocation. `168254` (`engram-parquet-download`) is `RUNNING` on `cn34`, CPU-only (`cpu=16,mem=256G`, no GPU TRES), time limit 12h.
+- Data progress: started static parquet download to `data/fineweb_edu_parquet` via `scripts/slurm_download_fineweb_parquet.sh`, using `HF_HUB_ENABLE_HF_TRANSFER=1` and `scripts/download_fineweb_parquet.py`. Initial file appeared under `data/fineweb_edu_parquet/data/.../*.parquet`, confirming the job is doing real download work.
+- Correction: an accidental outer `sbatch` job `168253` was canceled immediately; correct download job is `168254`.
+- Disk: VAST free before starting was about 19T at the workspace mount, enough for the expected 1-1.5T parquet plus tokenized data.
+- Feedback loop: no new feedback after latest pull.
+- Next: monitor `168254` download progress and `168251` preflight. After download completes, run local parquet tokenization and the ≥200B data gate. Tier-2 remains blocked until both data and MFU gates pass.
+
 # H2.0 - streaming tokenizer replaced; data gate hardened
 
 - Elapsed: H2.0 for the v3 resumed objective.
