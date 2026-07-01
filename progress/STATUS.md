@@ -1,3 +1,15 @@
+# H7.0 - tokenizer crossed 200B raw-output estimate
+
+- Timestamp: 2026-07-01T10:59:22Z.
+- Elapsed: H7.0 for the v3 resumed objective.
+- Active jobs: `169155` tokenizer/data-gate job is still `RUNNING` on `cn[13-16]`, CPU-only, elapsed `1:41:11`, explicit `TimeLimit=18:00:00`, `MinMemoryNode=1200G`. `168251` 128-H100 node preflight remains `PENDING (AssocGrpGRES/Resources)` with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Tokenization progress: 16 worker dirs, 2,122 `.u32` shard files. Sum of `.u32` file bytes is 848,800,000,000, which is an estimated 212,200,000,000 uint32 tokens. Disk usage for the token output tree is about 826G.
+- Gate status: this is only a raw-output estimate, not an official data-gate pass. The official >=200B data gate still waits for all workers to finish, `summary.json` files to be written, worker outputs to merge, and `scripts/assert_data_gate.py --min-tokens 200000000000` to pass on `data/fineweb_edu_deepseek_v3_300b/merged`.
+- Log notes: tokenizer warnings remain limited to `TRANSFORMERS_CACHE` deprecation and long-document sequence-length warnings; no worker stack trace seen.
+- Feedback loop: latest feedback remains ON-TRACK (`feedback/review-20260701T0834Z.md`).
+- Next: continue monitoring `169155` for worker summaries and the merged gate result; do not start Tier-2 until the official data gate and MFU gate pass. Tier-1 pre-gate remains allowed per feedback, after tokenizer/gate housekeeping is stable.
+
 # H5.3 - sample-350BT download complete; tokenizer running
 
 - Timestamp: 2026-07-01T09:22:48Z.
