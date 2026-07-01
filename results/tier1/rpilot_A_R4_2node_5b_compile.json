@@ -1,0 +1,24 @@
+{
+  "checkpoint": "runs/tier1_A_rpilot_R4_2node_5b_compile/ckpt_step006358.pt",
+  "facts_csv": "data/injected_facts/facts_5000_seed17.csv",
+  "main": {
+    "records": 4500,
+    "mean_delta_knockout_minus_normal": -2.443408966064453e-05,
+    "normal_em": 0.0008888888888888889,
+    "knockout_em": 0.0011111111111111111,
+    "em_collapse": -0.00022222222222222218,
+    "mcnemar_b_normal_only": 0,
+    "mcnemar_c_knockout_only": 1,
+    "mcnemar_exact_p": 1.0
+  },
+  "negative_control": {
+    "records": 500,
+    "mean_delta_knockout_minus_normal": -0.0022795543670654297,
+    "normal_em": 0,
+    "knockout_em": 0,
+    "em_collapse": 0,
+    "mcnemar_b_normal_only": 0,
+    "mcnemar_c_knockout_only": 0,
+    "mcnemar_exact_p": 1.0
+  }
+}
