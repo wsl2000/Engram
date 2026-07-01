@@ -1,3 +1,16 @@
+# H14.4 - R1 eval succeeded; R32 train released
+
+- Timestamp: 2026-07-01T19:16:00Z.
+- Elapsed: H14.4 for the v3 resumed objective.
+- R=1 eval retry `173180` completed successfully (`0:0`) in `00:03:21` with `TimeLimit=01:00:00`, `ReqMem=220G`.
+- R=1 eval artifacts are present: `results/tier1/rpilot_A_R1_2node_5b_compile.csv` (5,000 rows) and `results/tier1/rpilot_A_R1_2node_5b_compile.json`.
+- R=1 result at R=1/5B: main `records=4500`, `normal_em=0.0002222222`, `knockout_em=0.0002222222`, `em_collapse=0.0`, `mean_delta_knockout_minus_normal=-0.0021243813`, McNemar `b=0/c=0/p=1.0`; negative controls `records=500`, `normal_em=0`, `knockout_em=0`. This is a low-recall R=1 pilot point, not a Tier-1 verdict.
+- R=32 train `173143` released after the successful retry eval and is running on `cn[13-14]` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; dependent eval `173144` remains pending on `afterok:173143` with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- R=32 early metrics: step 71 / 6,358, `tokens_seen=55,836,672`, ~337.5k tok/s, MFU ~0.0722, `ce_impl=memory_efficient`; no error keywords in the R=32 train log/run dir.
+- Active H100 usage for this objective is back to 80 H100: R=2/4/8/16/32 trains are running. R=1 is complete.
+- Remaining active train progress: R=2 step 6,225 / 6,358 (`tokens_seen=4,895,539,200`), R=4 step 5,983 / 6,358 (`tokens_seen=4,705,222,656`), R=8 step 5,742 / 6,358 (`tokens_seen=4,515,692,544`), R=16 step 5,507 / 6,358 (`tokens_seen=4,330,881,024`).
+- Next: monitor R=2 completion/eval `173038`, then R=4/R=8/R=16/R=32 evals; aggregate R-pilot recall-vs-R after all pilot evals complete.
+
 # H14.3 - R1 train complete; eval dtype failure fixed and retried
 
 - Timestamp: 2026-07-01T19:09:43Z.
