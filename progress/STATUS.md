@@ -1,3 +1,14 @@
+# H10.0 - R1 5B compile retry running
+
+- Timestamp: 2026-07-01T14:55:37Z.
+- Elapsed: H10.0 for the v3 resumed objective.
+- R=1 retry jobs: train `172916`, eval `172919`. Train is running on `cn[13-14]` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; eval is pending on `afterok:172916` with 1 H100, `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Compile-cache fix status: effective. The retry passed the previous compile failure point, emitted `torch_compile_done`, and reached step 85 / 6,358 without Triton stale-cache errors.
+- Latest R=1 metric: `tokens_seen=66,846,720`, `tokens_per_s=338,270`, MFU `0.0724`, `ce_impl=memory_efficient`, `moe_backend=grouped`, `micro_batch_size=4`, `grad_accum_steps=6`.
+- Active H100 usage now: 16 H100 allocated by this resumed objective. The 128-H100 preflight `168251` remains pending (`AssocGrpGRES`).
+- Job table: appended the retry line to `progress/results/tier1_rpilot_5b_jobs.tsv`; the first failed attempt remains recorded for audit.
+- Next: push this R=1 retry status, then submit R=2,4,8,16,32 with `TARGET_TOKENS=5000000000`, `STEPS=6358`, `RUN_SUFFIX=_2node_5b_compile`, train `TimeLimit=08:00:00`/`MinMemoryNode=1800G`, and eval `TimeLimit=01:00:00`/`MinMemoryNode=220G`.
+
 # H9.9 - compile cache failure fixed before R1 retry
 
 - Timestamp: 2026-07-01T14:50:22Z.

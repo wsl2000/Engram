@@ -1,1 +1,2 @@
 R=1 target_tokens=5000000000 steps=6358 run_suffix=_2node_5b_compile train_job=172863 train_dependency=none train_nodes=2 train_time=08:00:00 train_mem=1800G eval_job=172864 eval_time=01:00:00 eval_mem=220G
+R=1 target_tokens=5000000000 steps=6358 run_suffix=_2node_5b_compile retry=local_compile_cache train_job=172916 train_dependency=none train_nodes=2 train_time=08:00:00 train_mem=1800G eval_job=172919 eval_time=01:00:00 eval_mem=220G
