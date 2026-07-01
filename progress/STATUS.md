@@ -1,3 +1,14 @@
+# H12.9 - R32 submitter queued with dependency gate
+
+- Timestamp: 2026-07-01T17:39:15Z.
+- Elapsed: H12.9 for the v3 resumed objective.
+- Submitted R=32 CPU submitter `173134` with explicit `TimeLimit=04:00:00`, `MinMemoryNode=512G`; it is pending on scheduler priority and consumes no GPU while pending.
+- R=32 train is configured to be submitted by that job with `TRAIN_DEPENDENCY=afterok:172919`, so the 2-node / 16-H100 train cannot start until the R=1 eval job `172919` has completed successfully.
+- R=32 train/eval limits passed through the submitter: `TRAIN_NODES=2`, `TRAIN_TIME=08:00:00`, `TRAIN_MEM=1800G`, `EVAL_TIME=01:00:00`, `EVAL_MEM=220G`, `RUN_SUFFIX=_2node_5b_compile`, `TARGET_TOKENS=5,000,000,000`, `STEPS=6,358`.
+- Active H100 usage remains 80 for this objective: R=1/2/4/8/16 trains are running; R=32 is not active and has no train job id yet.
+- Latest train health immediately before this submission remained clean: no error keywords across active train logs/run dirs, and R1/R2/R4/R8/R16 were all progressing at ~339-341k tok/s with MFU ~0.0726-0.0730.
+- Next: monitor submitter `173134`; once it appends R=32 train/eval IDs to `progress/results/tier1_rpilot_5b_jobs.tsv`, verify the train job dependency and Slurm limits, then push the updated job table.
+
 # H12.7 - 5B R-pilot stable; checkpoint write verified
 
 - Timestamp: 2026-07-01T17:27:05Z.
