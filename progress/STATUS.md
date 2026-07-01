@@ -1,3 +1,17 @@
+# H9.7 - feedback adopted: switch R-pilot to 5B/R with compile
+
+- Timestamp: 2026-07-01T14:36:23Z.
+- Elapsed: H9.7 for the v3 resumed objective.
+- Feedback read: `feedback/review-20260701T1425Z.md` is ON-TRACK and recommended shortening the A-only R-pilot to ~5B/R plus applying Tier-1 compile/memory-efficient CE now. Adopted because R1/R2 had only reached ~0.57B of the old 20B target.
+- Canceled old 20B pilot jobs: R=1 train/eval `172713/172714`, R=2 train/eval `172715/172716`, and R4+ CPU submitter `172750`. This released the active 32 H100 allocation. Old R1/R2 run dirs are retained as canceled evidence and will not be resumed.
+- Code changes: Tier-1 train wrapper now defaults to `ENGRAM_TORCH_COMPILE=1`, `ENGRAM_TORCH_COMPILE_MODE=default`, and `ENGRAM_CE_IMPL=memory_efficient`; the train entry can also read `ENGRAM_TORCH_COMPILE_MODE`. R-pilot submitter now supports `JOB_TABLE` and logs `target_tokens`, `steps`, and `run_suffix`.
+- Job manifest hygiene: renamed the old 20B R1/R2 table to `progress/results/tier1_rpilot_2node_20b_canceled.tsv`. New 5B jobs will write `progress/results/tier1_rpilot_5b_jobs.tsv`.
+- Submitted first 5B compile pilot: CPU submitter `172758` for R=1 only, `TARGET_TOKENS=5000000000`, `STEPS=6358` (~5.000B tokens at 786,432 tokens/step), `RUN_SUFFIX=_2node_5b_compile`, `JOB_TABLE=progress/results/tier1_rpilot_5b_jobs.tsv`, no stale train dependency. Submitter limit is `TimeLimit=04:00:00`, `MinMemoryNode=512G`.
+- Planned train/eval limits for emitted R=1 job: train uses 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; eval uses 1 H100, `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Current queue: only 128-H100 preflight `168251` and CPU submitter `172758` are pending. Active H100 usage now: 0 H100 allocated by this resumed objective.
+- Validation: `bash -n` passed for the touched shell scripts; `PYTHONPATH=src python -m py_compile src/engram/train.py src/engram/losses.py` passed; `git diff --check` passed.
+- Next: wait for `172758` to emit the R=1 train job, verify the train job carries 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`, and compile/CE log events. Once R=1 reaches first metrics, submit R=2,4,8,16,32 with the same 5B/compile settings.
+
 # H9.6 - R4+ submitter repaired; R1/R2 running
 
 - Timestamp: 2026-07-01T14:32:07Z.

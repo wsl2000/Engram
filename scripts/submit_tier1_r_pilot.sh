@@ -19,13 +19,14 @@ TRAIN_NODES="${TRAIN_NODES:-16}"
 EVAL_TIME="${EVAL_TIME:-01:00:00}"
 EVAL_MEM="${EVAL_MEM:-220G}"
 RUN_SUFFIX="${RUN_SUFFIX:-}"
+JOB_TABLE="${JOB_TABLE:-progress/results/tier1_rpilot_jobs.tsv}"
 TRAIN_DEP_ARGS=()
 if [[ -n "${TRAIN_DEPENDENCY:-}" ]]; then
   TRAIN_DEP_ARGS+=(--dependency="${TRAIN_DEPENDENCY}")
 fi
 
 cd /mnt/vast/workspaces/JAIF/dy/code/Engram
-mkdir -p progress/logs results/tier1 runs
+mkdir -p progress/logs progress/results results/tier1 runs
 
 IFS=',' read -r -a R_ARRAY <<< "${R_VALUES}"
 for R in "${R_ARRAY[@]}"; do
@@ -46,5 +47,5 @@ for R in "${R_ARRAY[@]}"; do
   TRAIN_JOB="$(sbatch --parsable "${TRAIN_DEP_ARGS[@]}" --nodes="${TRAIN_NODES}" --time="${TRAIN_TIME}" --mem="${TRAIN_MEM}" scripts/slurm_tier1_train.sh "${CONFIG_JSON}" "${STREAM_DIR}/shards.txt" "${RUN_DIR}" "${STEPS}")"
   CKPT_STEP="$(printf '%06d' "${STEPS}")"
   EVAL_JOB="$(sbatch --parsable --dependency="afterok:${TRAIN_JOB}" --time="${EVAL_TIME}" --mem="${EVAL_MEM}" scripts/slurm_tier1_eval.sh "${RUN_DIR}/ckpt_step${CKPT_STEP}.pt" "${FACTS_CSV}" "${OUT_PREFIX}")"
-  echo "R=${R} train_job=${TRAIN_JOB} train_dependency=${TRAIN_DEPENDENCY:-none} train_nodes=${TRAIN_NODES} train_time=${TRAIN_TIME} train_mem=${TRAIN_MEM} eval_job=${EVAL_JOB} eval_time=${EVAL_TIME} eval_mem=${EVAL_MEM}" | tee -a progress/results/tier1_rpilot_jobs.tsv
+  echo "R=${R} target_tokens=${TARGET_TOKENS} steps=${STEPS} run_suffix=${RUN_SUFFIX:-none} train_job=${TRAIN_JOB} train_dependency=${TRAIN_DEPENDENCY:-none} train_nodes=${TRAIN_NODES} train_time=${TRAIN_TIME} train_mem=${TRAIN_MEM} eval_job=${EVAL_JOB} eval_time=${EVAL_TIME} eval_mem=${EVAL_MEM}" | tee -a "${JOB_TABLE}"
 done

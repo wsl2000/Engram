@@ -103,7 +103,7 @@ def main() -> None:
     parser.add_argument("--no-checkpoint", action="store_true")
     parser.add_argument("--calibration", action="store_true")
     parser.add_argument("--torch-compile", action="store_true")
-    parser.add_argument("--torch-compile-mode", default="default")
+    parser.add_argument("--torch-compile-mode", default=os.environ.get("ENGRAM_TORCH_COMPILE_MODE", "default"))
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--resume-checkpoint")
     parser.add_argument("--keep-checkpoints", type=int, default=2)
