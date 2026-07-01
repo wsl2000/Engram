@@ -1,0 +1,31 @@
+# H0.8 Tier-1 CLI and local parquet smokes
+
+- Added:
+  - `scripts/freeze_injected_r.py`
+  - `scripts/inject_facts_stream.py`
+- Freeze-R smoke:
+  - Input: `progress/results/tier1_cli_smoke/a_only_sweep.csv`
+  - Output: `progress/results/tier1_cli_smoke/frozen_r.json`
+  - Frozen R: 3
+  - A recall at frozen R: 0.09
+- Fact injection CLI smoke:
+  - Input facts: `progress/results/rung0_kb_inject/facts.csv`
+  - Output: `progress/results/tier1_cli_smoke/injected_stream`
+  - Docs: 600
+  - Tokens: 2,400
+  - Shards: 1
+- Local parquet tokenizer smoke:
+  - Input parquet: `progress/results/local_parquet_smoke/source/sample.parquet`
+  - Command: `PYTHONPATH=src python scripts/tokenize_local_parquet.py --parquet-glob "progress/results/local_parquet_smoke/source/*.parquet" --output-dir progress/results/local_parquet_smoke/tokens --id-column id --tokens-per-shard 128 --max-tokens 512 --batch-docs 2`
+  - Output docs: 3
+  - Output tokens: 44
+  - dtype: uint32
+  - `docs.jsonl` contains stable doc IDs and token spans.
+  - `scripts/assert_data_gate.py --min-tokens 1` passed.
+- Validation:
+  - `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`
+  - `PYTHONPATH=src pytest -q` -> 16 passed, 1 skipped
+- Remaining before Tier-1 registered training:
+  - Slurm scripts for A-only R pilot and A/B injected-stream runs.
+  - Real DeepSeek-V3 fact mining at F~5,000.
+  - 128-H100 preflight and compile/fused-CE calibration.

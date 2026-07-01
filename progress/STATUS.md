@@ -1,3 +1,13 @@
+# H0.8 - Tier-1 CLIs and local parquet smoke passed
+
+- Elapsed: H0.8 for the v3 resumed objective.
+- Active run: none; no Tier-2 training launched.
+- Tier-1 CLI progress: added `scripts/freeze_injected_r.py` and `scripts/inject_facts_stream.py`. Smoke output under `progress/results/tier1_cli_smoke/` confirms A-only sweep freeze logic selected R=3 from `a_recall=0.09` and the facts+R injector wrote a doc-ID manifest and uint32 stream.
+- Offline data smoke: created a tiny local parquet sample and ran `scripts/tokenize_local_parquet.py` with DeepSeek-V3 tokenizer from local files, not `streaming=True`. Output under `progress/results/local_parquet_smoke/tokens/` has 3 docs, 44 uint32 tokens, shard manifest, and per-doc JSONL manifest; `scripts/assert_data_gate.py --min-tokens 1` passed.
+- Validation: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 16 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest push/pull; latest remains `feedback/review-20260629T1032Z.md`.
+- Next: convert these smoke CLIs into Slurm-ready Tier-1 registered jobs: A-only R pilot, A/B train on injected stream, B-normal/B-knockout eval, and 128-H100 node preflight/calibration scripts.
+
 # H0.6 - handoff v3 pulled; rung-0 apparatus smoke passed
 
 - Elapsed: H0.6 for the v3 resumed objective.

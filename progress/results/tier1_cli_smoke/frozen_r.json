@@ -1,0 +1,7 @@
+{
+  "sweep_csv": "progress/results/tier1_cli_smoke/a_only_sweep.csv",
+  "max_a_recall": 0.1,
+  "frozen_R": 3,
+  "a_recall_at_frozen_R": 0.09,
+  "note": "R is frozen from A-only difficulty; do not retune toward B pass."
+}

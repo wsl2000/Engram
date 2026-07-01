@@ -1,0 +1,8 @@
+{
+  "output_dir": "progress/results/tier1_cli_smoke/injected_stream",
+  "token_count": 2400,
+  "doc_count": 600,
+  "shard_count": 1,
+  "doc_manifest": "progress/results/tier1_cli_smoke/injected_stream/docs.jsonl",
+  "shard_manifest": "progress/results/tier1_cli_smoke/injected_stream/shards.csv"
+}
