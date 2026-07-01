@@ -1,3 +1,16 @@
+# H8.9 - pivot Tier-1 train path to 2-node preflight
+
+- Timestamp: 2026-07-01T13:51:42Z.
+- Elapsed: H8.9 for the v3 resumed objective.
+- Feedback response: read `feedback/review-20260701T1224Z.md` (ON-TRACK) and accepted the actionable suggestion not to couple Tier-1's certain verdict to the scarce 128-H100 preflight window.
+- Canceled jobs: canceled old Tier-1 R-pilot submitter `171792` and old 128-node-bound R1/R2 train/eval jobs `172196/172197` and `172669/172670`. These had not allocated GPUs. Archived their job table to `progress/results/tier1_rpilot_jobs_canceled_128dep.tsv`.
+- Kept artifacts: completed R=1 and R=2 streams remain usable: `data/tier1/rpilot_R1_tokens20000000000` and `data/tier1/rpilot_R2_tokens20000000000`. Removed partial `data/tier1/rpilot_R4_tokens20000000000` before restart.
+- Code changes: added `TRAIN_NODES` support to Tier-1 submit scripts and added `scripts/slurm_node_preflight_2node.sh` for a small 2-node / 16-H100 preflight (`--time=00:15:00 --mem=128G`). Future Tier-1 train submissions can use `TRAIN_NODES=2`, `TRAIN_DEPENDENCY=afterok:<2node_preflight>`, and `STEPS=25432` to cover ~20B tokens at 16 GPUs with mbs4/ga6.
+- Validation: `bash -n scripts/*.sh`, `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`, and static time/mem audit passed.
+- Active jobs: 128-H100 node preflight `168251` remains pending. No active H100 allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Next: after pushing/rebasing this update, submit the 2-node preflight and queue R1/R2 2-node trains plus a resumed R=4,8,16,32 R-pilot submitter behind that small preflight.
+
 # H8.8 - Tier-1 R-pilot R1/R2 queued behind preflight
 
 - Timestamp: 2026-07-01T13:48:30Z.

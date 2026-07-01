@@ -1,0 +1,2 @@
+R=1 train_job=172196 train_dependency=afterok:168251 train_time=04:00:00 train_mem=1800G eval_job=172197 eval_time=01:00:00 eval_mem=220G
+R=2 train_job=172669 train_dependency=afterok:168251 train_time=04:00:00 train_mem=1800G eval_job=172670 eval_time=01:00:00 eval_mem=220G
