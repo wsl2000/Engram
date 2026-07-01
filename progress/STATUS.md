@@ -1,3 +1,15 @@
+# H15.1 - R16 eval succeeded; recall higher but knockout still not collapsing
+
+- Timestamp: 2026-07-01T19:55:58Z.
+- Elapsed: H15.1 for the v3 resumed objective.
+- R=16 train `173049` completed successfully (`0:0`) in `04:16:25`; final checkpoint `runs/tier1_A_rpilot_R16_2node_5b_compile/ckpt_step006358.pt` is present and complete at 28,030,761,871 bytes.
+- R=16 eval `173050` completed successfully (`0:0`) in `00:03:24` with `TimeLimit=01:00:00`, `ReqMem=220G`.
+- R=16 eval artifacts are present: `results/tier1/rpilot_A_R16_2node_5b_compile.csv` and `results/tier1/rpilot_A_R16_2node_5b_compile.json`.
+- R=16 result: main `records=4500`, `normal_em=0.0406666667`, `knockout_em=0.0417777778`, `em_collapse=-0.0011111111`, `mean_delta_knockout_minus_normal=-0.0007286735`, McNemar `b=7/c=12/p=0.3592834473`; negative controls `records=500`, `normal_em=0`, `knockout_em=0`.
+- Recall rises by R=16, but knockout still does not collapse recall; it remains slightly higher than normal. This is evidence that the A-only injected-fact memorization is not dependent on Engram, as expected for the A-only R-pilot.
+- Active H100 usage for this objective is now 16 H100: only R=32 train `173143` is running. Its dependent eval `173144` remains pending with `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Next: monitor R=32 completion/eval, then aggregate recall-vs-R from R=1/2/4/8/16/32 and choose the freeze-R point for registered Tier-1 A/B.
+
 # H15.0 - R8 eval succeeded; recall rises but no knockout collapse
 
 - Timestamp: 2026-07-01T19:45:54Z.
