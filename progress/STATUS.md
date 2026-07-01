@@ -1,3 +1,15 @@
+# H4.1 - sample-350BT download 67pct
+
+- Timestamp: 2026-07-01T08:06:55Z.
+- Elapsed: H4.1 for the v3 resumed objective.
+- Active jobs: `168265` corrected FineWeb-Edu `sample/350BT` parquet download is `RUNNING` on `cn09`, CPU-only, elapsed `1:45:41`, explicit limit `--time=12:00:00 --mem=256G`. `168267` tokenizer/data-gate job remains `PENDING (Dependency)` on `afterok:168265`, explicit limit `--time=18:00:00 --mem=1200G/node`. `168251` 128-H100 node preflight remains `PENDING (AssocGrpGRES/Resources)` with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Data progress: sample-350BT download is at 316 / 472 parquet files (about 67%), 634G on disk, and `bad_scope=0` (all parquet paths under `sample/350BT/`).
+- ETA: at the observed rate, corrected download should finish in roughly 45-60 minutes, then `168267` should start automatically and run merge plus the >=200B data gate.
+- Validation since last push: no code changes after `5c95a10`; local scope audit remains clean.
+- Feedback loop: about to push this status and pull feedback.
+- Next: monitor `168265` to completion, then watch `168267` for tokenizer worker startup, worker-count assertion, merge, and data-gate result.
+
 # H2.5 - tokenizer wrapper made bash-explicit
 
 - Timestamp: 2026-07-01T06:26:01Z.
