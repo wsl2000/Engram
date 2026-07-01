@@ -1,3 +1,15 @@
+# H11.0 - five-way 5B R-pilot stable
+
+- Timestamp: 2026-07-01T15:48:16Z.
+- Elapsed: H11.0 for the v3 resumed objective.
+- Active H100 usage now: 80 H100 allocated by this resumed objective across R=1/2/4/8/16 A-only 5B trains. One unrelated same-user 1-H100 job is present and untouched.
+- Train progress: R=1 step 1,394 / 6,358 (`tokens_seen=1,096,286,208`, ~340k tok/s, MFU ~0.0728); R=2 step 1,025 / 6,358 (`tokens_seen=806,092,800`, ~341k tok/s, MFU ~0.0730); R=4 step 785 / 6,358 (`tokens_seen=617,349,120`, ~340k tok/s, MFU ~0.0729); R=8 step 557 / 6,358 (`tokens_seen=438,042,624`, ~340k tok/s, MFU ~0.0727); R=16 step 313 / 6,358 (`tokens_seen=246,153,216`, ~340k tok/s, MFU ~0.0728).
+- Health: grep over all five train logs found no `Traceback`, `RuntimeError`, `OutOfMemory`, stale-cache `OSError`, or `ChildFailed` after the local-cache fix.
+- Checkpoints: R=1 has `ckpt_step000626.pt` and `ckpt_step001264.pt`; R=2 has `ckpt_step000627.pt`; R=4 has `ckpt_step000627.pt`; R=8/R=16 have not reached first checkpoint windows yet.
+- Disk: VAST still has 17T free. `data/tier1` and checkpoint growth are within the stated disk budget.
+- Feedback loop: `git fetch origin` produced no new remote updates; branch is synchronized with `origin/main`.
+- Next: keep monitoring until R=1 completes and triggers eval `172919`; then submit/queue R=32 only after at least one 2-node training allocation frees.
+
 # H10.8 - R16 5B compile train running; capped pilot set launched
 
 - Timestamp: 2026-07-01T15:36:14Z.
