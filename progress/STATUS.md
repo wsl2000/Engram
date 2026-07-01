@@ -1,3 +1,15 @@
+# H8.8 - Tier-1 R-pilot R1/R2 queued behind preflight
+
+- Timestamp: 2026-07-01T13:48:30Z.
+- Elapsed: H8.8 for the v3 resumed objective.
+- Active jobs: `171792` Tier-1 R-pilot submitter is still `RUNNING` on `cn09`, CPU-only, elapsed `1:29:19` at latest check, explicit `TimeLimit=08:00:00`, `MinMemoryNode=512G`. It is currently building `R=4`.
+- Completed R-pilot streams: `R=1` wrote `data/tier1/rpilot_R1_tokens20000000000` with `token_count=19999985000`, `doc_count=10000`, `base_chunk_tokens=3999992`, `shard_count=193`. `R=2` wrote `data/tier1/rpilot_R2_tokens20000000000` with `token_count=19999970000`, `doc_count=20000`, `base_chunk_tokens=1999992`, `shard_count=197`.
+- Queued train/eval jobs: R=1 train/eval `172196/172197`; R=2 train/eval `172669/172670`. Both train jobs are `PENDING (Dependency)` with `Dependency=afterok:168251(unfulfilled)`, `TimeLimit=04:00:00`, `MinMemoryNode=1800G`, and 16 nodes / 128 H100 requested. Eval jobs depend on their corresponding train jobs and have `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Active H100 usage now: 0 H100 allocated by this resumed objective. Pending GPU jobs do not have allocations.
+- Node preflight: `168251` remains pending for 16 nodes / 128 H100.
+- Feedback loop: latest feedback remains ON-TRACK.
+- Next: monitor `171792` through R=4/8/16/32 stream builds and verify each emitted train job keeps `afterok:168251`.
+
 # H7.5 - Tier-1 R-pilot submitter running
 
 - Timestamp: 2026-07-01T12:19:06Z.
