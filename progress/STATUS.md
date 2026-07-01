@@ -1,3 +1,15 @@
+# H14.6 - R2 eval succeeded; low-recall pilot trend continues
+
+- Timestamp: 2026-07-01T19:27:46Z.
+- Elapsed: H14.6 for the v3 resumed objective.
+- R=2 train `173037` completed successfully (`0:0`) in `04:15:48`; final checkpoint `runs/tier1_A_rpilot_R2_2node_5b_compile/ckpt_step006358.pt` is present and complete at 28,030,761,871 bytes.
+- R=2 eval `173038` completed successfully (`0:0`) in `00:03:25` with `TimeLimit=01:00:00`, `ReqMem=220G`.
+- R=2 eval artifacts are present: `results/tier1/rpilot_A_R2_2node_5b_compile.csv` and `results/tier1/rpilot_A_R2_2node_5b_compile.json`.
+- R=2 result: main `records=4500`, `normal_em=0.0002222222`, `knockout_em=0.0002222222`, `em_collapse=0.0`, `mean_delta_knockout_minus_normal=0.0001220469`, McNemar `b=0/c=0/p=1.0`; negative controls `records=500`, `normal_em=0`, `knockout_em=0`.
+- Current R-pilot recall trend: R=1 and R=2 are both essentially zero recall, so knockout is not yet informative at these R values. No Tier-1 mechanism verdict is claimed.
+- Active H100 usage for this objective is now 64 H100: R=4/8/16/32 trains are running. R=1/R=2 are complete.
+- Next: monitor R=4 completion/eval `173042`, then R=8/R=16/R=32; aggregate recall-vs-R only after all pilot evals complete.
+
 # H14.4 - R1 eval succeeded; R32 train released
 
 - Timestamp: 2026-07-01T19:16:00Z.
