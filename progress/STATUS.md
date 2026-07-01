@@ -1,3 +1,15 @@
+# H5.3 - sample-350BT download complete; tokenizer running
+
+- Timestamp: 2026-07-01T09:22:48Z.
+- Elapsed: H5.3 for the v3 resumed objective.
+- Completed gate input: corrected FineWeb-Edu `sample/350BT` parquet download completed at 472 / 472 files, 930G on disk, `bad_scope=0`.
+- Active jobs: `169155` tokenizer/data-gate job is `RUNNING` on `cn[13-16]`, CPU-only, 4 nodes / 16 tasks / 256 CPUs, explicit `TimeLimit=18:00:00`, `MinMemoryNode=1200G`. `168251` 128-H100 node preflight remains `PENDING (AssocGrpGRES/Resources)` with no allocation.
+- H100 usage now: 0 H100 allocated by this resumed objective.
+- Tokenization progress: `data/fineweb_edu_deepseek_v3_300b` has 16 worker dirs, 86 `.u32` shards, and 34G written after about 4.5 minutes of tokenizer runtime. Merge and >=200B gate have not run yet; they run after all workers finish.
+- Log notes: tokenizer log shows repeated `TRANSFORMERS_CACHE` deprecation warnings and several "sequence length longer than max" tokenizer warnings for long documents. These are tokenization-time warnings; no stack trace or worker failure is present.
+- Feedback loop: latest feedback `feedback/review-20260701T0834Z.md` is ON-TRACK. Watch-items acknowledged: Tier-1 pre-gate discipline, MFU gate 18-20% via compile+fused CE, and queue/disk resilience.
+- Next: monitor `169155` until worker summaries appear, then verify merge output and `assert_data_gate.py --min-tokens 200000000000` result.
+
 # H4.6 - resumed stalled sample-350BT download with larger mem limit
 
 - Timestamp: 2026-07-01T08:40:42Z.
