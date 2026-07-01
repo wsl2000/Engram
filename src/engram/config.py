@@ -24,6 +24,8 @@ class ModelShape:
     engram_heads: int = 8
     engram_dim: int = 256
     engram_conv_kernel: int = 4
+    use_rope: bool = True
+    rope_theta: float = 10_000.0
 
     @property
     def head_dim(self) -> int:
@@ -43,11 +45,20 @@ class TrainShape:
     warmup_frac: float = 0.02
     grad_clip: float = 1.0
     router_aux_loss_coef: float = 0.01
-    micro_batch_size: int = 1
+    micro_batch_size: int = 4
+    grad_accum_steps_128gpu: int = 6
     grad_accum_steps_80gpu: int = 26
-    target_tokens_per_run: int = 70_000_000_000
+    target_tokens_per_run: int = 200_000_000_000
     checkpoint_minutes: int = 25
     val_interval_steps: int = 500
+
+    @property
+    def tokens_per_step_128gpu(self) -> int:
+        return 128 * self.micro_batch_size * 2048 * self.grad_accum_steps_128gpu
+
+    @property
+    def max_steps_128gpu(self) -> int:
+        return self.target_tokens_per_run // self.tokens_per_step_128gpu
 
     @property
     def tokens_per_step_80gpu(self) -> int:
@@ -75,6 +86,34 @@ def active_params(shape: ModelShape) -> int:
         attention_params_per_layer(shape) * shape.n_layers
         + (shape.shared_experts + shape.top_k) * expert_params(shape) * shape.n_layers
     )
+
+
+def estimate_flops_per_token(shape: ModelShape, arm: str) -> int:
+    """Approximate forward+backward FLOPs/token for invariant reporting.
+
+    The handoff v3 systems review corrected the budget to include the vocab
+    head and attention, not only 6 * active params. A and B share top-k, depth,
+    and hidden sizes; the only per-token delta is the Engram read path.
+    """
+
+    base = 6 * active_params(shape)
+    vocab_head = 2 * shape.d_model * shape.vocab_size
+    attention_scores = 4 * shape.n_layers * shape.seq_len * shape.d_model
+    total = base + vocab_head + attention_scores
+    if arm == "A":
+        return total
+    if arm != "B":
+        raise ValueError(f"unknown arm: {arm}")
+    sites = len(shape.engram_layers)
+    orders = len(shape.engram_orders)
+    heads = shape.engram_heads
+    # Table gathers are memory ops, but the projections/gate/conv are real
+    # compute. Count them conservatively so iso-FLOP is reported, not claimed 0.
+    engram_proj = sites * 2 * shape.engram_dim * shape.d_model
+    engram_conv = sites * 2 * shape.engram_conv_kernel * shape.d_model
+    engram_gate = sites * 4 * shape.d_model
+    hash_mix = sites * orders * heads * 16
+    return total + engram_proj + engram_conv + engram_gate + hash_mix
 
 
 def engram_overhead_per_site(shape: ModelShape) -> int:
@@ -144,14 +183,22 @@ def invariant_report(shape: ModelShape | None = None) -> dict[str, Any]:
         "arm_a_non_embedding_params": a_non_embed,
         "arm_b_non_embedding_params": b_non_embed,
         "iso_param_abs_delta": abs(a_non_embed - b_non_embed),
+        "arm_a_flops_per_token": estimate_flops_per_token(shape, "A"),
+        "arm_b_flops_per_token": estimate_flops_per_token(shape, "B"),
+        "iso_flop_abs_delta": abs(estimate_flops_per_token(shape, "A") - estimate_flops_per_token(shape, "B")),
+        "iso_flop_rel_delta": abs(estimate_flops_per_token(shape, "A") - estimate_flops_per_token(shape, "B"))
+        / estimate_flops_per_token(shape, "A"),
         "iso_active_param_abs_delta": 0,
+        "tokens_per_step_128gpu": TrainShape().tokens_per_step_128gpu,
+        "max_steps_200b_128gpu": TrainShape().max_steps_128gpu,
         "tokens_per_step_80gpu": TrainShape().tokens_per_step_80gpu,
-        "max_steps_70b_80gpu": TrainShape().max_steps_80gpu,
+        "max_steps_200b_80gpu": TrainShape().max_steps_80gpu,
     }
     row_quantum = len(shape.engram_layers) * len(shape.engram_orders) * shape.engram_heads * shape.engram_dim
     assert report["iso_param_abs_delta"] <= row_quantum
     assert shape.top_k == 6
     assert shape.routed_experts_a == 88 and shape.routed_experts_b == 68
+    assert report["iso_flop_rel_delta"] < 0.01
     assert 0.20 <= report["sparse_budget_to_engram_frac"] <= 0.25
     return report
 
@@ -184,7 +231,10 @@ def build_arm_config(
             "Engram layers are zero-based module indices 2 and 6.",
         ],
     }
-    cfg["train"]["max_steps"] = train.max_steps_80gpu
+    cfg["train"]["max_steps"] = train.max_steps_128gpu
+    cfg["train"]["max_steps_128gpu"] = train.max_steps_128gpu
+    cfg["train"]["grad_accum_steps"] = train.grad_accum_steps_128gpu
+    cfg["train"]["tokens_per_step_128gpu"] = train.tokens_per_step_128gpu
     cfg["train"]["tokens_per_step_80gpu"] = train.tokens_per_step_80gpu
     return cfg
 
@@ -196,4 +246,3 @@ def build_experiment_configs(seeds: tuple[int, ...] = SEEDS) -> dict[str, dict[s
         for arm in ("A", "B"):
             out[f"{arm}_seed{seed}"] = build_arm_config(arm, seed)
     return out
-

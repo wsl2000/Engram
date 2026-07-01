@@ -1,0 +1,31 @@
+# H0.6 v3 build and rung-0 smoke
+
+- Pulled `origin/main` to `9a8e777`; only `handoff.md` changed upstream.
+- Read handoff v3 from `DEPLOYMENT SCOPE` through the end.
+- Implemented first-pass v3 build items:
+  - Tier-1 injected-fact apparatus and rung-0 smoke.
+  - Offline parquet download/tokenize/data-gate CLIs.
+  - RoPE in model attention.
+  - Optional `torch.compile` training flag.
+  - Optional fused linear-CE dispatch with chunked fallback.
+  - Computed arm-specific FLOP/token and corrected MFU logging.
+  - Checkpoint rotation, disk pre-write check, latest-checkpoint resume, and node preflight.
+- Rung-0 command:
+  `PYTHONPATH=src python scripts/run_kb_inject_smoke.py --num-facts 200 --repeats 3 --output-dir progress/results/rung0_kb_inject`
+- Rung-0 result:
+  - pass: true
+  - records: 200
+  - normal EM: 1.0
+  - knockout EM: 0.0
+  - mean delta knockout-normal: 20.0
+  - McNemar exact p: `1.2446030555722283e-60`
+  - key token-ID identity: true
+- Validation:
+  - `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py`
+  - `PYTHONPATH=src pytest -q` -> 16 passed, 1 skipped
+  - New CLI help checks passed.
+- Not yet done:
+  - Registered Tier-1 run scripts and A-only R pilot execution.
+  - Full local parquet/tokenization smoke with actual parquet sample.
+  - 128-H100 node preflight and MFU calibration with compile/fused CE.
+  - ≥200B data gate and Tier-2 training.

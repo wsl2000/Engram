@@ -10,6 +10,7 @@ from torch.nn import functional as F
 
 from .config import ModelShape
 from .engram_read import EngramRead, EngramReadConfig
+from .losses import linear_cross_entropy
 
 
 class RMSNorm(nn.Module):
@@ -23,14 +24,36 @@ class RMSNorm(nn.Module):
         return y * self.weight
 
 
+def rotate_half(x: torch.Tensor) -> torch.Tensor:
+    x_even = x[..., ::2]
+    x_odd = x[..., 1::2]
+    return torch.stack((-x_odd, x_even), dim=-1).flatten(-2)
+
+
 class CausalSelfAttention(nn.Module):
-    def __init__(self, d_model: int, n_heads: int):
+    def __init__(self, d_model: int, n_heads: int, rope_theta: float = 10_000.0, use_rope: bool = True):
         super().__init__()
         assert d_model % n_heads == 0
         self.n_heads = n_heads
         self.head_dim = d_model // n_heads
+        if self.head_dim % 2 != 0:
+            raise ValueError("RoPE requires an even attention head dimension")
+        self.use_rope = use_rope
+        self.rope_theta = rope_theta
+        inv_freq = 1.0 / (rope_theta ** (torch.arange(0, self.head_dim, 2, dtype=torch.float32) / self.head_dim))
+        self.register_buffer("rope_inv_freq", inv_freq, persistent=False)
         self.qkv = nn.Linear(d_model, 3 * d_model, bias=False)
         self.out = nn.Linear(d_model, d_model, bias=False)
+
+    def _apply_rope(self, q: torch.Tensor, k: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        if not self.use_rope:
+            return q, k
+        seq_len = q.shape[-2]
+        pos = torch.arange(seq_len, device=q.device, dtype=self.rope_inv_freq.dtype)
+        freqs = torch.outer(pos, self.rope_inv_freq)
+        cos = freqs.cos().repeat_interleave(2, dim=-1).to(dtype=q.dtype)[None, None, :, :]
+        sin = freqs.sin().repeat_interleave(2, dim=-1).to(dtype=q.dtype)[None, None, :, :]
+        return (q * cos) + (rotate_half(q) * sin), (k * cos) + (rotate_half(k) * sin)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         bsz, seq_len, d_model = x.shape
@@ -39,6 +62,7 @@ class CausalSelfAttention(nn.Module):
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
+        q, k = self._apply_rope(q, k)
         y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         y = y.transpose(1, 2).contiguous().view(bsz, seq_len, d_model)
         return self.out(y)
@@ -176,7 +200,12 @@ class TransformerBlock(nn.Module):
     ):
         super().__init__()
         self.attn_norm = RMSNorm(shape.d_model)
-        self.attn = CausalSelfAttention(shape.d_model, shape.n_heads)
+        self.attn = CausalSelfAttention(
+            shape.d_model,
+            shape.n_heads,
+            rope_theta=shape.rope_theta,
+            use_rope=shape.use_rope,
+        )
         self.moe_norm = RMSNorm(shape.d_model)
         self.moe = MoELayer(
             d_model=shape.d_model,
@@ -289,5 +318,10 @@ class EngramTransformerLM(nn.Module):
         hidden, aux_loss, stats = self.forward_hidden(input_ids, knockout=knockout)
         out = {"hidden": hidden, "aux_loss": aux_loss, **stats}
         if labels is not None:
-            out["loss"] = self.chunked_cross_entropy(hidden, labels, chunk_tokens=self.ce_chunk_tokens)
+            out["loss"] = linear_cross_entropy(
+                hidden,
+                self.token_embedding.weight,
+                labels,
+                chunk_tokens=self.ce_chunk_tokens,
+            )
         return out

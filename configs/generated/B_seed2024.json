@@ -22,7 +22,9 @@
     ],
     "engram_heads": 8,
     "engram_dim": 256,
-    "engram_conv_kernel": 4
+    "engram_conv_kernel": 4,
+    "use_rope": true,
+    "rope_theta": 10000.0
   },
   "train": {
     "precision": "bf16",
@@ -35,13 +37,17 @@
     "warmup_frac": 0.02,
     "grad_clip": 1.0,
     "router_aux_loss_coef": 0.01,
-    "micro_batch_size": 1,
+    "micro_batch_size": 4,
+    "grad_accum_steps_128gpu": 6,
     "grad_accum_steps_80gpu": 26,
-    "target_tokens_per_run": 70000000000,
+    "target_tokens_per_run": 200000000000,
     "checkpoint_minutes": 25,
     "val_interval_steps": 500,
-    "max_steps": 16432,
-    "tokens_per_step_80gpu": 4259840
+    "max_steps": 31789,
+    "max_steps_128gpu": 31789,
+    "grad_accum_steps": 6,
+    "tokens_per_step_128gpu": 6291456,
+    "tokens_per_step_80gpu": 17039360
   },
   "derived": {
     "expert_params": 2457600,
@@ -54,9 +60,15 @@
     "arm_a_non_embedding_params": 4505600000,
     "arm_b_non_embedding_params": 4505598976,
     "iso_param_abs_delta": 1024,
+    "arm_a_flops_per_token": 3388211200,
+    "arm_b_flops_per_token": 3389553152,
+    "iso_flop_abs_delta": 1341952,
+    "iso_flop_rel_delta": 0.0003960650386847195,
     "iso_active_param_abs_delta": 0,
-    "tokens_per_step_80gpu": 4259840,
-    "max_steps_70b_80gpu": 16432
+    "tokens_per_step_128gpu": 6291456,
+    "max_steps_200b_128gpu": 31789,
+    "tokens_per_step_80gpu": 17039360,
+    "max_steps_200b_80gpu": 11737
   },
   "routed_experts": 68,
   "engram_enabled": true,

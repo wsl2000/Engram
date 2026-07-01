@@ -15,6 +15,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from .config import ModelShape
 from .data import LoaderConfig, PackedMemmapLoader
 from .model import EngramTransformerLM
+from .ops import latest_checkpoint, require_free_bytes, rotate_checkpoints
 
 
 def setup_dist() -> tuple[int, int, int]:
@@ -40,10 +41,24 @@ def resolve_max_steps(override: int | None, configured: int) -> int:
     return int(configured if override is None else override)
 
 
-def save_checkpoint(path: Path, model: DDP | EngramTransformerLM, optimizer: torch.optim.Optimizer, step: int) -> None:
-    raw_model = model.module if isinstance(model, DDP) else model
+def unwrap_model(model: DDP | EngramTransformerLM | torch.nn.Module) -> torch.nn.Module:
+    raw = model.module if isinstance(model, DDP) else model
+    return getattr(raw, "_orig_mod", raw)
+
+
+def save_checkpoint(
+    path: Path,
+    model: DDP | EngramTransformerLM | torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    step: int,
+    config: dict | None = None,
+) -> None:
+    raw_model = unwrap_model(model)
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model": raw_model.state_dict(), "optimizer": optimizer.state_dict(), "step": step}, path)
+    payload = {"model": raw_model.state_dict(), "optimizer": optimizer.state_dict(), "step": step}
+    if config is not None:
+        payload["config"] = config
+    torch.save(payload, path)
 
 
 def build_model_on_device(
@@ -87,6 +102,12 @@ def main() -> None:
     parser.add_argument("--checkpoint-minutes-override", type=float)
     parser.add_argument("--no-checkpoint", action="store_true")
     parser.add_argument("--calibration", action="store_true")
+    parser.add_argument("--torch-compile", action="store_true")
+    parser.add_argument("--torch-compile-mode", default="default")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--resume-checkpoint")
+    parser.add_argument("--keep-checkpoints", type=int, default=2)
+    parser.add_argument("--min-free-gb-before-ckpt", type=float, default=64.0)
     args = parser.parse_args()
 
     rank, world, local_rank = setup_dist()
@@ -104,6 +125,12 @@ def main() -> None:
         device=device,
         dtype=torch.bfloat16,
     )
+    if args.torch_compile or os.environ.get("ENGRAM_TORCH_COMPILE", "0") == "1":
+        if rank == 0:
+            print(json.dumps({"event": "torch_compile_start", "mode": args.torch_compile_mode}), flush=True)
+        model = torch.compile(model, mode=args.torch_compile_mode)
+        if rank == 0:
+            print(json.dumps({"event": "torch_compile_done"}), flush=True)
     if rank == 0 and device.type == "cuda":
         free, total = torch.cuda.mem_get_info(device)
         print(json.dumps({"event": "build_model_done", "free_bytes": free, "total_bytes": total}), flush=True)
@@ -111,7 +138,7 @@ def main() -> None:
         model = DDP(model, device_ids=[local_rank], output_device=local_rank, gradient_as_bucket_view=True)
         if rank == 0:
             print(json.dumps({"event": "ddp_wrap_done", "world_size": world}), flush=True)
-    raw_model = model.module if isinstance(model, DDP) else model
+    raw_model = unwrap_model(model)
 
     train_cfg = cfg["train"]
     if rank == 0:
@@ -122,6 +149,19 @@ def main() -> None:
         betas=(float(train_cfg["adam_beta1"]), float(train_cfg["adam_beta2"])),
         weight_decay=float(train_cfg["weight_decay"]),
     )
+    resume_step = 0
+    if args.resume or args.resume_checkpoint:
+        ckpt_path = Path(args.resume_checkpoint) if args.resume_checkpoint else latest_checkpoint(args.output_dir)
+        if ckpt_path is None:
+            if rank == 0:
+                print(json.dumps({"event": "resume_requested_no_checkpoint"}), flush=True)
+        else:
+            ckpt = torch.load(ckpt_path, map_location=device)
+            raw_model.load_state_dict(ckpt["model"])
+            optimizer.load_state_dict(ckpt["optimizer"])
+            resume_step = int(ckpt.get("step", 0))
+            if rank == 0:
+                print(json.dumps({"event": "resume_loaded", "checkpoint": str(ckpt_path), "step": resume_step}), flush=True)
     if rank == 0 and device.type == "cuda":
         free, total = torch.cuda.mem_get_info(device)
         print(json.dumps({"event": "optimizer_done", "free_bytes": free, "total_bytes": total}), flush=True)
@@ -162,7 +202,7 @@ def main() -> None:
     last_ckpt = time.time()
     start_time = time.time()
 
-    for step in range(max_steps):
+    for step in range(resume_step, max_steps):
         lr = cosine_lr(step, max_steps, train_cfg["peak_lr"], train_cfg["warmup_frac"], train_cfg["min_lr_ratio"])
         for group in optimizer.param_groups:
             group["lr"] = lr
@@ -193,8 +233,9 @@ def main() -> None:
         elapsed_step = time.time() - step_t0
         tokens_seen = (step + 1) * grad_accum * tokens_per_micro_global
         tok_s = grad_accum * tokens_per_micro_global / elapsed_step
-        active_params = float(cfg["derived"]["active_params"])
-        mfu = (6.0 * active_params * tok_s) / (world * 989.5e12)
+        flop_key = f"arm_{str(cfg['arm']).lower()}_flops_per_token"
+        flops_per_token = float(cfg["derived"].get(flop_key, 6.0 * float(cfg["derived"]["active_params"])))
+        mfu = (flops_per_token * tok_s) / (world * 989.5e12)
         metrics = {
             "step": step + 1,
             "loss": float(step_loss.detach().cpu()),
@@ -229,7 +270,14 @@ def main() -> None:
             should_ckpt = bool(ckpt_flag.item())
         if should_ckpt:
             if rank == 0:
-                save_checkpoint(output_dir / f"ckpt_step{step+1:06d}.pt", model, optimizer, step + 1)
+                require_free_bytes(output_dir, int(args.min_free_gb_before_ckpt * (1024**3)))
+                save_checkpoint(output_dir / f"ckpt_step{step+1:06d}.pt", model, optimizer, step + 1, config=cfg)
+                removed = rotate_checkpoints(output_dir, keep_last=args.keep_checkpoints)
+                if removed:
+                    print(
+                        json.dumps({"event": "checkpoint_rotate", "removed": [str(p) for p in removed]}),
+                        flush=True,
+                    )
             if dist.is_initialized():
                 dist.barrier()
             last_ckpt = time.time()

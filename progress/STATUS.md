@@ -1,3 +1,16 @@
+# H0.6 - handoff v3 pulled; rung-0 apparatus smoke passed
+
+- Elapsed: H0.6 for the v3 resumed objective.
+- Active run: none; no Tier-2 training launched. This is build/gate work only, following handoff v3 order.
+- Source of truth: pulled `origin/main` to `9a8e777` and read updated `handoff.md` from `DEPLOYMENT SCOPE` through the end.
+- Build progress: added Tier-1 injected-fact apparatus scaffolding (`src/engram/injected_facts.py`) with single-token fact schema, stream injector with doc IDs, key-ngram token-ID identity assert, freeze-R helper, paired NLL/EM McNemar stats, rung-0 smoke, fact builder, and injected-fact evaluator.
+- Data/MFU/spec/ops progress: added offline parquet downloader/local tokenizer/doc-ID manifest/data gate, RoPE in attention, optional CE backend dispatch for Liger/cut-cross-entropy with chunked fallback, `torch.compile` training flag, corrected arm-specific FLOP/token MFU logging, checkpoint rotation/disk pre-write checks, latest-checkpoint resume, and node preflight.
+- Rung-0 result: `PYTHONPATH=src python scripts/run_kb_inject_smoke.py --num-facts 200 --repeats 3 --output-dir progress/results/rung0_kb_inject` passed. Normal EM 1.0, knockout EM 0.0, mean NLL delta knockout-normal 20.0, McNemar exact p `1.2446030555722283e-60`, key identity passed.
+- Local validation: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 16 tests with 1 CUDA grouped-mm test skipped on login; new CLI help checks passed.
+- Node health: login-node preflight wrote `progress/results/node_preflight_login.json`; CUDA is not available on the login context, so full H100 node preflight remains pending for Slurm allocation.
+- Feedback loop: pulled latest remote; no new feedback beyond `feedback/review-20260629T1032Z.md`.
+- Next: tighten Tier-1 registered run scripts/A-only R pilot, then build a small pre-gate local parquet/tokenization smoke before requesting 128-H100 calibration for compile+fused CE.
+
 # H22.4 - final eval complete; report drafted
 
 - Elapsed: H22.4 wall-clock from the resumed run.

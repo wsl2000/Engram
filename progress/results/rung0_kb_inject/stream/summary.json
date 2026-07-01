@@ -1,0 +1,8 @@
+{
+  "output_dir": "progress/results/rung0_kb_inject/stream",
+  "token_count": 2400,
+  "doc_count": 600,
+  "shard_count": 1,
+  "doc_manifest": "progress/results/rung0_kb_inject/stream/docs.jsonl",
+  "shard_manifest": "progress/results/rung0_kb_inject/stream/shards.csv"
+}

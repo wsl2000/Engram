@@ -1,0 +1,22 @@
+{
+  "records": 200,
+  "mean_delta_knockout_minus_normal": 20.0,
+  "normal_em": 1,
+  "knockout_em": 0,
+  "em_collapse": 1,
+  "mcnemar_b_normal_only": 200,
+  "mcnemar_c_knockout_only": 0,
+  "mcnemar_exact_p": 1.2446030555722283e-60,
+  "rung": "rung-0",
+  "name": "kb-inject",
+  "key_identity_passed": true,
+  "stream": {
+    "output_dir": "progress/results/rung0_kb_inject/stream",
+    "token_count": 2400,
+    "doc_count": 600,
+    "shard_count": 1,
+    "doc_manifest": "progress/results/rung0_kb_inject/stream/docs.jsonl",
+    "shard_manifest": "progress/results/rung0_kb_inject/stream/shards.csv"
+  },
+  "pass": true
+}

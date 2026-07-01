@@ -9,7 +9,13 @@
   "arm_a_non_embedding_params": 4505600000,
   "arm_b_non_embedding_params": 4505598976,
   "iso_param_abs_delta": 1024,
+  "arm_a_flops_per_token": 3388211200,
+  "arm_b_flops_per_token": 3389553152,
+  "iso_flop_abs_delta": 1341952,
+  "iso_flop_rel_delta": 0.0003960650386847195,
   "iso_active_param_abs_delta": 0,
-  "tokens_per_step_80gpu": 4259840,
-  "max_steps_70b_80gpu": 16432
+  "tokens_per_step_128gpu": 6291456,
+  "max_steps_200b_128gpu": 31789,
+  "tokens_per_step_80gpu": 17039360,
+  "max_steps_200b_80gpu": 11737
 }
