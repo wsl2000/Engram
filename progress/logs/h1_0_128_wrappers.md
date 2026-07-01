@@ -1,0 +1,26 @@
+# H1.0 128-H100 wrappers
+
+- Added `scripts/slurm_node_preflight_128.sh`.
+  - Requests 16 nodes / 128 H100.
+  - Runs `scripts/node_preflight.py` once per node.
+  - Writes per-node JSON under `progress/results/node_preflight/`.
+- Added `scripts/slurm_calibrate_128.sh`.
+  - Requests 16 nodes / 128 H100.
+  - Sets grouped MoE, `ENGRAM_TORCH_COMPILE=1`, and `ENGRAM_CE_IMPL=auto`.
+  - Runs 200-step calibration by default.
+  - Appends rank0 tail tok/s/MFU summary via `scripts/summarize_calibration.py`.
+- Added `scripts/slurm_tier1_train.sh`.
+  - Generic registered Tier-1 train wrapper.
+  - Uses checkpoint rotation, disk pre-write check, and `--resume`.
+- Added `scripts/slurm_tier1_eval.sh`.
+  - Single-H100 injected-facts eval wrapper.
+  - Produces CSV/JSON with normal vs knockout paired stats.
+- Smoke:
+  - `scripts/summarize_calibration.py` parsed existing h4v3 B train log.
+  - Output: `progress/results/calibration_smoke.csv`.
+  - Tail tok/s: 2,577,662.
+  - Tail MFU: 0.09283 using old run's logged MFU. New runs will log corrected FLOP/token MFU after H0.6 code changes.
+- Validation:
+  - `bash -n scripts/slurm_node_preflight_128.sh scripts/slurm_calibrate_128.sh scripts/slurm_tier1_train.sh scripts/slurm_tier1_eval.sh`
+  - `PYTHONPATH=src python -m py_compile scripts/summarize_calibration.py`
+  - `PYTHONPATH=src pytest -q` -> 16 passed, 1 skipped

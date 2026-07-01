@@ -1,3 +1,13 @@
+# H1.0 - 128-H100 wrappers and calibration summarizer added
+
+- Elapsed: H1.0 for the v3 resumed objective.
+- Active run: none; no 128-H100 allocation requested yet.
+- Added Slurm wrappers: `scripts/slurm_node_preflight_128.sh`, `scripts/slurm_calibrate_128.sh`, `scripts/slurm_tier1_train.sh`, and `scripts/slurm_tier1_eval.sh`.
+- Calibration logging: added `scripts/summarize_calibration.py`, which appends tail tok/s/MFU summaries to `progress/results/calibration.csv`. Smoke against the existing h4v3 B log wrote `progress/results/calibration_smoke.csv` with tail tok/s `2,577,662` and MFU `0.09283` for the old 80-GPU run.
+- Validation: `bash -n` passed for all new Slurm scripts; `PYTHONPATH=src python -m py_compile scripts/summarize_calibration.py` passed; `PYTHONPATH=src pytest -q` passed 16 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest push/pull.
+- Next: request or wait for a 16-node window only after a real Tier-1 fact set and injected token stream are generated; first run should be 128-H100 node preflight, then compile/fused-CE calibration, then registered Tier-1 A-only R pilot / A-B run.
+
 # H0.8 - Tier-1 CLIs and local parquet smoke passed
 
 - Elapsed: H0.8 for the v3 resumed objective.

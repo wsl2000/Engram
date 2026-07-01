@@ -1,0 +1,2 @@
+label,steps,last_step,last_tokens,mean_tail_tokens_per_s,mean_tail_mfu,world_size,micro_batch_size,grad_accum_steps,moe_backend,ce_chunk_tokens
+h4v3_B_existing_tail,5027,5027,19766968320,2577662.1884431997,0.09283022497990004,80,4,6,grouped,256
