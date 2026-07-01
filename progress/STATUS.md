@@ -1,3 +1,16 @@
+# H12.7 - 5B R-pilot stable; checkpoint write verified
+
+- Timestamp: 2026-07-01T17:27:05Z.
+- Elapsed: H12.7 for the v3 resumed objective.
+- Feedback loop: `git pull --rebase` returned already up to date; latest feedback remains `feedback/review-20260701T1625Z.md` (ON-TRACK).
+- Active H100 usage for this objective remains 80 H100: five 2-node / 16-H100 train jobs are running for R=1/2/4/8/16. R=32 remains held until one 2-node train frees resources.
+- Explicit Slurm limits currently in force: each train job uses `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; each dependent eval job uses `TimeLimit=01:00:00`, `MinMemoryNode=220G`; the completed R=2/4/8/16 CPU submitter used `TimeLimit=08:00:00`, `MinMemoryNode=512G`.
+- Train progress: R=1 step 3,863 / 6,358 (`tokens_seen=3,037,986,816`, ~340k tok/s, MFU ~0.0728); R=2 step 3,489 / 6,358 (`tokens_seen=2,743,861,248`, ~341k tok/s, MFU ~0.0730); R=4 step 3,253 / 6,358 (`tokens_seen=2,558,263,296`, ~339k tok/s, MFU ~0.0726); R=8 step 3,025 / 6,358 (`tokens_seen=2,378,956,800`, ~341k tok/s, MFU ~0.0730); R=16 step 2,778 / 6,358 (`tokens_seen=2,184,708,096`, ~340k tok/s, MFU ~0.0728).
+- Health: grep over all five active train logs and run dirs found no `Traceback`, `RuntimeError`, `OOM`, `OSError`, `FAILED`, `ChildFailed`, or stale-cache errors.
+- Checkpoint sanity: the previously observed small R=1 `ckpt_step003816.pt` was an in-progress write; it is now complete at 28,030,761,871 bytes.
+- Disk: VAST reports 2.5P free on `/mnt/vast`; local `/tmp` has 238G free for per-job compile caches.
+- Next: keep monitoring to R=1 completion and dependent eval `172919`; once a 2-node train allocation frees, submit R=32 with explicit `TRAIN_TIME=08:00:00`, `TRAIN_MEM=1800G`, `EVAL_TIME=01:00:00`, `EVAL_MEM=220G`, and submitter `--time=04:00:00 --mem=512G`.
+
 # H12.1 - feedback confirms rung-0 apparatus validity
 
 - Timestamp: 2026-07-01T16:53:12Z.
