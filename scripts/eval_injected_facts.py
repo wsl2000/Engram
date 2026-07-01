@@ -35,11 +35,13 @@ def fact_nll(model: EngramTransformerLM, fact: InjectedFact, device: torch.devic
     context = prompt[:]
     total = 0.0
     first_pred = None
-    with torch.no_grad():
+    with torch.inference_mode():
         for idx, target in enumerate(answer):
             ids = torch.tensor([context], device=device, dtype=torch.long)
-            hidden = model(ids, knockout=knockout)["hidden"]
-            logits = model.logits_for_hidden(hidden[:, -1:]).float().squeeze(0).squeeze(0)
+            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+                hidden = model(ids, knockout=knockout)["hidden"]
+                logits = model.logits_for_hidden(hidden[:, -1:])
+            logits = logits.float().squeeze(0).squeeze(0)
             if idx == 0:
                 first_pred = int(logits.argmax(dim=-1).item())
             target_t = torch.tensor([target], device=device, dtype=torch.long)

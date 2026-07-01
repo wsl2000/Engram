@@ -1,3 +1,16 @@
+# H14.3 - R1 train complete; eval dtype failure fixed and retried
+
+- Timestamp: 2026-07-01T19:09:43Z.
+- Elapsed: H14.3 for the v3 resumed objective.
+- R=1 train retry `172916` completed successfully (`0:0`) in `04:15:46` with 2 nodes / 16 H100, `TimeLimit=08:00:00`, `ReqMem=3600G`; final step reached `6,358 / 6,358`, `tokens_seen=5,000,134,656`, final logged tok/s ~340.5k, MFU ~0.0729.
+- Final R=1 checkpoint is present and complete: `runs/tier1_A_rpilot_R1_2node_5b_compile/ckpt_step006358.pt`, 28,030,761,871 bytes.
+- Anomaly: dependent eval `172919` failed after 50s with `RuntimeError: expected mat1 and mat2 to have the same dtype, but got: float != c10::BFloat16`. Root cause was `scripts/eval_injected_facts.py` not using bf16 autocast while the grouped MoE router path casts activations to fp32 and checkpoint weights are bf16.
+- Fix: added CUDA bf16 autocast around the model/logit forward path in `scripts/eval_injected_facts.py`; `PYTHONPATH=src python -m py_compile scripts/eval_injected_facts.py` and `git diff --check` passed.
+- Retried R=1 eval as job `173180` with explicit `TimeLimit=01:00:00`, `MinMemoryNode=220G`; it is running on `cn16`.
+- R=32 dependency repair: the existing R=32 train job `173143` had become `DependencyNeverSatisfied` because it depended on failed eval `172919`; updated it in-place to `Dependency=afterok:173180(unfulfilled)`. Its train limits remain 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`; eval `173144` remains `afterok:173143`, `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Active H100 usage for this objective is now 65 H100: R=2/4/8/16 trains use 64 H100 and R=1 eval retry uses 1 H100. R=32 is pending on dependency and inactive.
+- Next: monitor eval `173180` to completion, then verify `results/tier1/rpilot_A_R1_2node_5b_compile.{json,csv}` and R32 train release.
+
 # H13.1 - R32 stream built and dependent jobs verified
 
 - Timestamp: 2026-07-01T17:55:52Z.

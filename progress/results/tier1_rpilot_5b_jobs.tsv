@@ -5,3 +5,4 @@ R=4 target_tokens=5000000000 steps=6358 run_suffix=_2node_5b_compile train_job=1
 R=8 target_tokens=5000000000 steps=6358 run_suffix=_2node_5b_compile train_job=173044 train_dependency=none train_nodes=2 train_time=08:00:00 train_mem=1800G eval_job=173045 eval_time=01:00:00 eval_mem=220G
 R=16 target_tokens=5000000000 steps=6358 run_suffix=_2node_5b_compile train_job=173049 train_dependency=none train_nodes=2 train_time=08:00:00 train_mem=1800G eval_job=173050 eval_time=01:00:00 eval_mem=220G
 R=32 target_tokens=5000000000 steps=6358 run_suffix=_2node_5b_compile train_job=173143 train_dependency=afterok:172919 train_nodes=2 train_time=08:00:00 train_mem=1800G eval_job=173144 eval_time=01:00:00 eval_mem=220G
+R=1 eval_retry=bf16_autocast_fix checkpoint=runs/tier1_A_rpilot_R1_2node_5b_compile/ckpt_step006358.pt replaced_failed_eval=172919 eval_job=173180 eval_time=01:00:00 eval_mem=220G r32_train_job=173143 r32_train_dependency_updated=afterok:173180
