@@ -1,3 +1,13 @@
+# H1.2 - registered Tier-1 factset generated
+
+- Elapsed: H1.2 for the v3 resumed objective.
+- Active run: none.
+- Factset: generated `data/injected_facts/facts_5000_seed17.csv` with DeepSeek-V3 tokenizer using `scripts/build_injected_facts.py --count 5000 --seed 17 --negative-control-frac 0.1`.
+- Validation: 5,000 facts total; 4,500 main and 500 negative-control; all 5,000 subjects are single-token and unique; all 5,000 objects are single-token and unique; subject/object token-ID overlap is 0. Summary written to `progress/results/tier1_factset_5000_seed17_summary.json`.
+- Local validation: `PYTHONPATH=src python -m py_compile src/engram/*.py scripts/*.py` passed; `PYTHONPATH=src pytest -q` passed 16 tests with 1 CUDA grouped-mm test skipped on login.
+- Feedback loop: no new feedback after latest push/pull.
+- Next: produce injected stream variants after the A-only pilot freezes R; then submit node preflight before any 128-H100 calibration/training.
+
 # H1.0 - 128-H100 wrappers and calibration summarizer added
 
 - Elapsed: H1.0 for the v3 resumed objective.

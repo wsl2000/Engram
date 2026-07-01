@@ -72,6 +72,8 @@ def mine_single_token_strings(
     ids = list(range(min_id, high))
     rng.shuffle(ids)
     out: list[str] = []
+    seen_text: set[str] = set()
+    seen_ids: set[tuple[int, ...]] = set()
     for idx in ids:
         text = tokenizer.decode([idx], clean_up_tokenization_spaces=False)
         if not text or text.isspace():
@@ -80,7 +82,10 @@ def mine_single_token_strings(
             continue
         if text.strip() != text:
             continue
-        if is_single_token(tokenizer, text):
+        ids_for_text = token_ids(tokenizer, text)
+        if len(ids_for_text) == 1 and text not in seen_text and ids_for_text not in seen_ids:
+            seen_text.add(text)
+            seen_ids.add(ids_for_text)
             out.append(text)
         if len(out) >= limit:
             break

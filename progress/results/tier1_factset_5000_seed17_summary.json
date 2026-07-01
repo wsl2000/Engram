@@ -1,0 +1,14 @@
+{
+  "facts_csv": "data/injected_facts/facts_5000_seed17.csv",
+  "facts": 5000,
+  "classes": {
+    "negative_control": 500,
+    "main": 4500
+  },
+  "single_subjects": 5000,
+  "single_objects": 5000,
+  "unique_subjects": 5000,
+  "unique_objects": 5000,
+  "overlap_subject_object": 0,
+  "seed": 17
+}
