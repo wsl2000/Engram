@@ -1,3 +1,17 @@
+# H13.1 - R32 stream built and dependent jobs verified
+
+- Timestamp: 2026-07-01T17:55:52Z.
+- Elapsed: H13.1 for the v3 resumed objective.
+- R=32 CPU submitter `173134` completed successfully (`0:0`) in `00:09:23` with `TimeLimit=04:00:00`, `ReqMem=512G`.
+- R=32 stream is built under `data/tier1/rpilot_R32_tokens5000000000`: `token_count=4,999,520,000`, `doc_count=320,000`, `base_docs=160,000`, `injected_docs=160,000`, `shard_count=50`, size ~19G.
+- Job table now includes R=32: train `173143`, eval `173144`, `run_suffix=_2node_5b_compile`, `target_tokens=5,000,000,000`, `steps=6,358`.
+- Verified R=32 train `173143`: pending on `Dependency=afterok:172919(unfulfilled)`, requests 2 nodes / 16 H100, `TimeLimit=08:00:00`, `MinMemoryNode=1800G`, and excludes the same bad nodes as the other Tier-1 train jobs.
+- Verified R=32 eval `173144`: pending on `Dependency=afterok:173143(unfulfilled)`, requests 1 H100, `TimeLimit=01:00:00`, `MinMemoryNode=220G`.
+- Active H100 usage remains 80 for this objective: R=1/2/4/8/16 trains are running; R=32 is dependency-held and inactive.
+- Train progress: R=1 step 4,583 / 6,358 (`tokens_seen=3,604,217,856`, ~340.6k tok/s, MFU ~0.0729); R=2 step 4,210 / 6,358 (`tokens_seen=3,310,878,720`, ~341.1k tok/s, MFU ~0.0730); R=4 step 3,972 / 6,358 (`tokens_seen=3,123,707,904`, ~340.2k tok/s, MFU ~0.0728); R=8 step 3,745 / 6,358 (`tokens_seen=2,945,187,840`, ~341.0k tok/s, MFU ~0.0730); R=16 step 3,498 / 6,358 (`tokens_seen=2,750,939,136`, ~339.3k tok/s, MFU ~0.0726).
+- Health: error scan across active train logs/run dirs and the R32 submitter log found no `Traceback`, `RuntimeError`, `OOM`, `OSError`, `FAILED`, `ChildFailed`, or stale-cache errors.
+- Next: monitor R=1 completion and eval `172919`; R=32 train should remain pending until that eval succeeds.
+
 # H12.9 - R32 submitter queued with dependency gate
 
 - Timestamp: 2026-07-01T17:39:15Z.
