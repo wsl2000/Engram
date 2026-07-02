@@ -1,3 +1,18 @@
+# H19.6 - registered Tier-1 A+B running
+
+- Timestamp: 2026-07-02T00:38:00Z.
+- Elapsed: H19.6 for the v3 resumed objective.
+- Registered Tier-1 stream completed after the chunked-writer fix: `data/tier1/registered_R16_tokens20000000000_20b_tps50m`, `token_count=19,999,760,000`, `doc_count=160,000`, `base_docs=80,000`, `injected_docs=80,000`, `shard_count=399`, `tokens_per_shard=50,000,000`, `base_chunk_tokens=249,992`.
+- Submitted registered A+B at frozen R=16, 20B tokens/arm, `STEPS=25,432`, `RUN_SUFFIX=_20b_tps50m`. Job table is `progress/results/tier1_registered_R16_20b_tps50m_jobs.txt`.
+- A train `175099` is running on `cn[08-09]` with 2 nodes / 16 H100, `TimeLimit=20:00:00`, `ReqMem=3600G` total / `MinMemoryNode=1800G`. A eval `175101` is pending on `afterok:175099` with `TimeLimit=01:00:00`, `ReqMem=220G`.
+- B train `175100` is running on `cn[13-14]` with 2 nodes / 16 H100, `TimeLimit=20:00:00`, `ReqMem=3600G` total / `MinMemoryNode=1800G`. B eval `175102` is pending on `afterok:175100` with `TimeLimit=01:00:00`, `ReqMem=220G`.
+- Decision job `175103` is pending on both eval jobs with `TimeLimit=00:10:00`, `ReqMem=16G`.
+- First metrics: A reached step 49 / 25,432, `tokens_seen=38,535,168`, ~337.8k tok/s, MFU ~0.0723. B reached step 40 / 25,432, `tokens_seen=31,457,280`, ~327.7k tok/s, MFU ~0.0702.
+- Invariants seen in rank-0 logs: `world_size=16`, `loader_seed=1337`, `arm=A/B`, `seed=1337`, `moe_backend=grouped`, `ce_impl=memory_efficient`, `micro_batch_size=4`, `grad_accum_steps=6`, AdamW, bf16 compile path.
+- Health: `torch_compile_done`, DDP wrap, and optimizer init completed for both arms; no `Traceback`, `RuntimeError`, OOM, stale-cache, no-space, `FAILED`, or `ChildFailed` keywords found in train logs/run dirs.
+- Active H100 usage for this objective is 32. ETA at current throughput is roughly 16.5-17.0 hours to final checkpoints, plus eval/decision.
+- Next: monitor to first 25-minute checkpoint for each arm, then continue 2-hour progress/pull cycle until registered eval/decision lands.
+
 # H19.1 - registered stream builder stall fixed; retry prepared
 
 - Timestamp: 2026-07-02T00:05:00Z.
