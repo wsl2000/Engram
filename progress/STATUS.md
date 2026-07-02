@@ -1,3 +1,16 @@
+# H20.6 - registered Tier-1 second checkpoints healthy
+
+- Timestamp: 2026-07-02T01:37:00Z.
+- Elapsed: H20.6 for the v3 resumed objective.
+- Active H100 usage remains 32: A train `175099` on `cn[08-09]`, B train `175100` on `cn[13-14]`, each 2 nodes / 16 H100 with `TimeLimit=20:00:00` and `MinMemoryNode=1800G`.
+- Registered eval/decision jobs remain dependency-held: `175101`/`175102` with `TimeLimit=01:00:00`, `MinMemoryNode=220G`; `175103` with `TimeLimit=00:10:00`, `MinMemoryNode=16G`.
+- Progress: A step 1,522 / 25,432, `tokens_seen=1,196,949,504`, ~340.6k tok/s, MFU ~0.0729. B step 1,478 / 25,432, `tokens_seen=1,162,346,496`, ~331.8k tok/s, MFU ~0.0710.
+- Checkpoints: A has `ckpt_step000627.pt` and `ckpt_step001265.pt`, both 28,030,761,871 bytes. B has `ckpt_step000602.pt` and `ckpt_step001224.pt`, both 28,027,736,107 bytes.
+- Disk: `/mnt/vast` still has 2.5P free; `/tmp` has 238G free. Checkpoint rotation is currently keeping the expected two checkpoints per arm.
+- Health: no error keywords in train stdout or rank-0 JSONL logs.
+- ETA: roughly 15.0-15.7 hours of training remain, then eval/decision.
+- Next: continue registered A/B training; next required progress push by about 2026-07-02T03:37Z unless a checkpoint, anomaly, feedback update, eval, or decision lands earlier.
+
 # H20.1 - registered Tier-1 first checkpoints complete
 
 - Timestamp: 2026-07-02T01:06:00Z.
