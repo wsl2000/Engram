@@ -1,3 +1,15 @@
+# H36.5 - registered A complete and eval succeeded; B near final
+
+- Timestamp: 2026-07-02T17:42:00Z.
+- Elapsed: H36.5 for the v3 resumed objective.
+- A train `175099` completed successfully (`0:0`) in `17:01:49` with `TimeLimit=20:00:00`, `ReqMem=3600G` total / `MinMemoryNode=1800G`; final checkpoint `runs/tier1_A_registered_R16_20b_tps50m/ckpt_step025432.pt` is complete at 28,030,761,871 bytes.
+- A eval `175101` completed successfully (`0:0`) in `00:03:29` with `TimeLimit=01:00:00`, `ReqMem=220G`; artifacts are `results/tier1/registered_A_R16_20b_tps50m.csv` and `.json`.
+- A eval result: main `records=4500`, `normal_em=0.0164444444`, `knockout_em=0.0177777778`, `em_collapse=-0.0013333333`, `mean_delta_knockout_minus_normal=0.0001111812`, McNemar `b=4/c=10/p=0.1795654297`; negative controls `records=500`, `normal_em=0`, `knockout_em=0`.
+- B train `175100` remains running on `cn[13-14]`, 2 nodes / 16 H100, `TimeLimit=20:00:00`, `MinMemoryNode=1800G`. Latest seen before this status was step 24,908 / 25,432, `tokens_seen=19,588,448,256`, ~333.2k tok/s, MFU ~0.0713; ETA roughly 15-20 minutes to final checkpoint.
+- Dependency-held B eval `175102` remains pending with `TimeLimit=01:00:00`, `MinMemoryNode=220G`; decision job `175103` remains pending with `TimeLimit=00:10:00`, `MinMemoryNode=16G`.
+- Active H100 usage for this objective is now 16 from B training only.
+- Next: monitor B final checkpoint, B eval, and decision; push immediately when they land.
+
 # H34.6 - registered Tier-1 nearing final
 
 - Timestamp: 2026-07-02T15:46:00Z.
