@@ -28,21 +28,25 @@ class SequentialTokenReader:
         self.file_idx = 0
         self.offset = 0
 
-    def take(self, n: int) -> list[int]:
+    def take(self, n: int) -> np.ndarray:
         if n <= 0 or not self.arrays:
-            return []
-        out: list[int] = []
-        while len(out) < n:
+            return np.empty(0, dtype=np.uint32)
+        chunks: list[np.ndarray] = []
+        taken_total = 0
+        while taken_total < n:
             arr = self.arrays[self.file_idx]
             remain = len(arr) - self.offset
-            take = min(n - len(out), remain)
+            take = min(n - taken_total, remain)
             if take:
-                out.extend(int(x) for x in np.asarray(arr[self.offset : self.offset + take], dtype=np.uint32))
+                chunks.append(np.array(arr[self.offset : self.offset + take], dtype=np.uint32, copy=True))
                 self.offset += take
+                taken_total += take
             if self.offset >= len(arr):
                 self.file_idx = (self.file_idx + 1) % len(self.arrays)
                 self.offset = 0
-        return out
+        if len(chunks) == 1:
+            return chunks[0]
+        return np.concatenate(chunks).astype(np.uint32, copy=False)
 
 
 def write_tier1_mixed_stream(
@@ -56,7 +60,8 @@ def write_tier1_mixed_stream(
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     reader = SequentialTokenReader(base_token_files or [])
-    shard_tokens: list[int] = []
+    shard_chunks: list[np.ndarray] = []
+    shard_token_count = 0
     shard_idx = 0
     token_total = 0
     doc_count = 0
@@ -65,32 +70,39 @@ def write_tier1_mixed_stream(
     shard_rows = []
 
     def flush() -> None:
-        nonlocal shard_tokens, shard_idx
-        if not shard_tokens:
+        nonlocal shard_chunks, shard_token_count, shard_idx
+        if shard_token_count <= 0:
             return
         path = out / f"tier1_{shard_idx:06d}.u32"
-        np.asarray(shard_tokens, dtype=np.uint32).tofile(path)
-        shard_rows.append({"path": str(path), "token_count": len(shard_tokens)})
-        shard_tokens = []
+        if len(shard_chunks) == 1:
+            arr = shard_chunks[0]
+        else:
+            arr = np.concatenate(shard_chunks).astype(np.uint32, copy=False)
+        arr.tofile(path)
+        shard_rows.append({"path": str(path), "token_count": shard_token_count})
+        shard_chunks = []
+        shard_token_count = 0
         shard_idx += 1
 
-    def append_doc(ids: list[int], doc_id: str, kind: str, docs_f, meta: dict[str, object]) -> bool:
-        nonlocal token_total, doc_count, injected_docs, base_docs, shard_tokens
+    def append_doc(ids: list[int] | np.ndarray, doc_id: str, kind: str, docs_f, meta: dict[str, object]) -> bool:
+        nonlocal token_total, doc_count, injected_docs, base_docs, shard_chunks, shard_token_count
         if target_tokens is not None and token_total >= target_tokens:
             return False
-        if target_tokens is not None and token_total + len(ids) > target_tokens:
-            ids = ids[: target_tokens - token_total]
-        if not ids:
+        arr = np.asarray(ids, dtype=np.uint32)
+        if target_tokens is not None and token_total + len(arr) > target_tokens:
+            arr = arr[: target_tokens - token_total]
+        if len(arr) == 0:
             return False
         start = token_total
-        shard_tokens.extend(ids)
-        token_total += len(ids)
+        shard_chunks.append(arr)
+        shard_token_count += len(arr)
+        token_total += len(arr)
         doc_count += 1
         injected_docs += int(kind == "injected")
         base_docs += int(kind == "base")
         row = {"doc_id": doc_id, "kind": kind, "start_token": start, "end_token": token_total, **meta}
         docs_f.write(json.dumps(row) + "\n")
-        while len(shard_tokens) >= tokens_per_shard:
+        while shard_token_count >= tokens_per_shard:
             flush()
         return target_tokens is None or token_total < target_tokens
 

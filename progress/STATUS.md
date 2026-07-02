@@ -1,3 +1,15 @@
+# H19.1 - registered stream builder stall fixed; retry prepared
+
+- Timestamp: 2026-07-02T00:05:00Z.
+- Elapsed: H19.1 for the v3 resumed objective.
+- Anomaly: first registered Tier-1 R=16 20B stream build (`scripts/submit_tier1_registered.sh ... R=16 target_tokens=20000000000 steps=25432`) stalled after writing 92 shards / ~35G under `data/tier1/registered_R16_tokens20000000000`. It used CPU only and submitted no Slurm GPU jobs.
+- Evidence: builder stayed at 92 shards from 2026-07-01T23:52:22Z to 2026-07-02T00:02:15Z with no `/proc` IO counter movement, while the Python process remained ~97% CPU and ~40G RSS. No H100 was consumed.
+- Resource cleanup: canceled obsolete pending 128-H100 preflight job `168251` before the registered submission path; it was no longer part of the 2-node/80-H100-compatible Tier-1 plan and consumed no GPU when canceled.
+- Fix committed in code before retry: `src/engram/tier1.py` now buffers stream output as numpy chunks rather than a huge Python `list[int]`; `scripts/submit_tier1_registered.sh` now accepts explicit `TOKENS_PER_SHARD` and `RUN_SUFFIX` so retries can use a new stream/run/result namespace.
+- Validation: `PYTHONPATH=src python -m py_compile src/engram/tier1.py scripts/build_tier1_stream.py scripts/decide_tier1.py`, `bash -n scripts/submit_tier1_registered.sh scripts/submit_tier1_r_pilot.sh scripts/slurm_tier1_train.sh scripts/slurm_tier1_eval.sh`, and `git diff --check` all passed.
+- Active H100 usage for this objective is 0; Slurm queue for this user is empty after the unrelated `geowam` job ended.
+- Retry plan: rebuild and submit registered Tier-1 with `RUN_SUFFIX=_20b_tps50m`, `TOKENS_PER_SHARD=50000000`, `TRAIN_NODES=2`, `TRAIN_TIME=20:00:00`, `TRAIN_MEM=1800G`, `EVAL_TIME=01:00:00`, `EVAL_MEM=220G`, `DECIDE_TIME=00:10:00`, `DECIDE_MEM=16G`, frozen `R=16`, `TARGET_TOKENS=20,000,000,000`, and `STEPS=25,432`.
+
 # H18.6 - R-pilot complete; freeze R=16
 
 - Timestamp: 2026-07-01T23:35:00Z.
