@@ -1,3 +1,12 @@
+# H37.1 - report updated; Tier-2 remains stopped
+
+- Timestamp: 2026-07-02T18:08:05Z.
+- Elapsed: H37.1 for the v3 resumed objective.
+- Updated root `REPORT.md` to supersede the older natural-data-only report and reflect the current v3 path.
+- Report verdict: Tier-1 mechanism positive control **FAIL**; Tier-2 paper-claim verification **not launched** and not claimed either positive or negative.
+- No new jobs were submitted for this report update. Active H100 usage for this Engram objective remains 0.
+- Tier-2 remains stopped unless the owner explicitly approves a new scoped plan after the hard-gated efficiency work: prove memory-efficient/fused CE in training, test `micro_batch_size=8`, and rerun 200-step calibration with explicit Slurm limits and an `>=18%` MFU target.
+
 # H37.0 - registered Tier-1 decision: FAIL; no Engram H100 active
 
 - Timestamp: 2026-07-02T18:06:05Z.
