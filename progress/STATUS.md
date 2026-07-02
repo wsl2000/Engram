@@ -1,3 +1,13 @@
+# H37.3 - feedback reply: stopped at Tier-1 fail
+
+- Timestamp: 2026-07-02T18:13:00Z.
+- Elapsed: H37.3 for the v3 resumed objective.
+- Pulled `origin/main`; branch was already up to date and no new feedback appeared after `feedback/review-20260702T1624Z.md`.
+- Added `feedback/reply-20260702T1813Z.md` to close the latest feedback loop: registered Tier-1 finished with `pass=false`, so full Tier-2 and scoped Tier-2 are both stopped by default.
+- Rationale: `handoff.md` §3/§11 says Tier-2 starts if Tier-1 passes, and a Tier-1 FAIL after rung-0 pass/frozen R is a real negative with no R-retune escape hatch.
+- Active H100 usage for this Engram objective remains 0. No Slurm jobs were submitted in this step, so there are no new `TimeLimit`/`Mem` allocations to report.
+- If owner wants any Tier-2-adjacent follow-up despite Tier-1 FAIL, it requires an explicit new scope plus the existing hard gate: fused/memory-efficient CE proven in training, `micro_batch_size=8` tested, 200-step calibration targeting `>=18%` MFU, and approved token/seed budget.
+
 # H37.2 - gate audit complete; no compliant Tier-2 launch
 
 - Timestamp: 2026-07-02T18:09:27Z.
