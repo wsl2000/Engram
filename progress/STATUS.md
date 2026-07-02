@@ -1,3 +1,15 @@
+# H20.1 - registered Tier-1 first checkpoints complete
+
+- Timestamp: 2026-07-02T01:06:00Z.
+- Elapsed: H20.1 for the v3 resumed objective.
+- Active registered Tier-1 jobs remain healthy. A train `175099` is running on `cn[08-09]`, 2 nodes / 16 H100, `TimeLimit=20:00:00`, `MinMemoryNode=1800G`; B train `175100` is running on `cn[13-14]`, 2 nodes / 16 H100, `TimeLimit=20:00:00`, `MinMemoryNode=1800G`.
+- Dependent jobs unchanged: A eval `175101` and B eval `175102` pending with `TimeLimit=01:00:00`, `MinMemoryNode=220G`; decision job `175103` pending with `TimeLimit=00:10:00`, `MinMemoryNode=16G`.
+- First checkpoints are complete: A `runs/tier1_A_registered_R16_20b_tps50m/ckpt_step000627.pt` is 28,030,761,871 bytes; B `runs/tier1_B_registered_R16_20b_tps50m/ckpt_step000602.pt` is 28,027,736,107 bytes, matching expected B-size scale.
+- Current progress: A step 753 / 25,432, `tokens_seen=592,183,296`, ~340.4k tok/s, MFU ~0.0729. B step 728 / 25,432, `tokens_seen=572,522,496`, ~331.3k tok/s, MFU ~0.0709.
+- Health: no error keywords in train stdout or rank-0 JSONL logs; compile/DDP/optimizer already completed for both arms.
+- ETA: at current throughput, remaining registered train time is roughly 15.8-16.3 hours plus eval/decision.
+- Next: continue monitoring checkpoint rotation and 2-hour feedback/push cycle; no Tier-1 verdict until A/B final eval and `registered_decision_R16_20b_tps50m.json` land.
+
 # H19.6 - registered Tier-1 A+B running
 
 - Timestamp: 2026-07-02T00:38:00Z.
