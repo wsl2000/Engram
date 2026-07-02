@@ -1,3 +1,17 @@
+# H30.6 - registered Tier-1 11h healthy
+
+- Timestamp: 2026-07-02T11:43:00Z.
+- Elapsed: H30.6 for the v3 resumed objective.
+- Feedback loop: `git fetch origin --prune` found no new feedback beyond `feedback/review-20260701T2025Z.md`; branch is synchronized with `origin/main`.
+- Active H100 usage remains 32: A train `175099` on `cn[08-09]`, B train `175100` on `cn[13-14]`, each 2 nodes / 16 H100 with `TimeLimit=20:00:00`, `MinMemoryNode=1800G`.
+- Dependency-held jobs unchanged: A eval `175101` and B eval `175102` with `TimeLimit=01:00:00`, `MinMemoryNode=220G`; decision job `175103` with `TimeLimit=00:10:00`, `MinMemoryNode=16G`.
+- Progress: A step 16,558 / 25,432, `tokens_seen=13,021,741,056`, ~340.5k tok/s, MFU ~0.0729. B step 16,176 / 25,432, `tokens_seen=12,721,324,032`, ~332.0k tok/s, MFU ~0.0711.
+- Checkpoint rotation healthy: A keeps `ckpt_step015943.pt` and `ckpt_step016581.pt`, both 28,030,761,871 bytes. B keeps `ckpt_step015553.pt` and `ckpt_step016176.pt`, both 28,027,736,107 bytes.
+- Disk: `/mnt/vast` has 2.5P free; `/tmp` has 238G free.
+- Health: no error keywords in train stdout or rank-0 JSONL logs.
+- ETA: roughly 5.2-5.8 hours of registered training remain, plus eval/decision.
+- Next: continue monitoring; next required progress push by about 2026-07-02T13:43Z unless an anomaly, feedback update, or milestone lands earlier.
+
 # H28.6 - registered Tier-1 halfway healthy
 
 - Timestamp: 2026-07-02T09:41:00Z.
