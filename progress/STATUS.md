@@ -1,3 +1,12 @@
+# H36.6 - feedback hard gate acknowledged
+
+- Timestamp: 2026-07-02T17:45:00Z.
+- Elapsed: H36.6 for the v3 resumed objective.
+- Pulled and read `feedback/review-20260702T1624Z.md` (VERDICT: ISSUES, cost/efficiency hard gate before Tier-2).
+- Decision adopted immediately: let registered Tier-1 finish and bank the mechanism verdict, but do not auto-launch any full Tier-2 6x200B run after Tier-1. Tier-2 is paused at the boundary until the requested MFU fix/scope decision is handled.
+- Required before any Tier-2: verify memory-efficient/fused linear-CE is actually active in the training path, test `micro_batch_size=8`, rerun 200-step calibration, and target >=18% MFU; then get explicit owner scope decision for either scoped Tier-2, skip Tier-2, or another approved plan.
+- Current Tier-1 jobs are unchanged by this feedback: A train/eval completed; B train continues; B eval/decision remain dependency-held with their existing `TimeLimit`/`Mem` settings.
+
 # H36.5 - registered A complete and eval succeeded; B near final
 
 - Timestamp: 2026-07-02T17:42:00Z.
