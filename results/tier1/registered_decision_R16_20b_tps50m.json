@@ -1,0 +1,43 @@
+{
+  "tier": "Tier-1",
+  "scope": "mechanism/param-efficiency positive control, not paper natural-data verification",
+  "a_csv": "results/tier1/registered_A_R16_20b_tps50m.csv",
+  "b_csv": "results/tier1/registered_B_R16_20b_tps50m.csv",
+  "b_summary_json": "results/tier1/registered_B_R16_20b_tps50m.json",
+  "main_b_knockout": {
+    "records": 4500,
+    "mean_delta_knockout_minus_normal": 0.00380767908361223,
+    "normal_em": 0.023777777777777776,
+    "knockout_em": 0.025333333333333333,
+    "em_collapse": -0.0015555555555555566,
+    "mcnemar_b_normal_only": 4,
+    "mcnemar_c_knockout_only": 11,
+    "mcnemar_exact_p": 0.11846923828125
+  },
+  "negative_control_b_knockout": {
+    "records": 500,
+    "mean_delta_knockout_minus_normal": 0.004751680374145507,
+    "normal_em": 0,
+    "knockout_em": 0,
+    "em_collapse": 0,
+    "mcnemar_b_normal_only": 0,
+    "mcnemar_c_knockout_only": 0,
+    "mcnemar_exact_p": 1.0
+  },
+  "a_main_em": 0.016444444444444446,
+  "b_main_em": 0.023777777777777776,
+  "main_b_minus_a_em": 0.007333333333333331,
+  "main_b_only": 94,
+  "main_a_only": 61,
+  "main_gap_mcnemar_p": 0.009932668383372013,
+  "a_negative_control_em": 0.0,
+  "b_negative_control_em": 0.0,
+  "negative_control_b_minus_a_em": 0.0,
+  "negative_control_b_only": 0,
+  "negative_control_a_only": 0,
+  "negative_control_gap_mcnemar_p": 1.0,
+  "criterion_a_b_knockout_collapse": false,
+  "criterion_b_b_minus_a_margin": false,
+  "criterion_c_negative_control_specificity": true,
+  "pass": false
+}

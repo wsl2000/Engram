@@ -1,0 +1,24 @@
+{
+  "checkpoint": "runs/tier1_B_registered_R16_20b_tps50m/ckpt_step025432.pt",
+  "facts_csv": "data/injected_facts/facts_5000_seed17.csv",
+  "main": {
+    "records": 4500,
+    "mean_delta_knockout_minus_normal": 0.00380767908361223,
+    "normal_em": 0.023777777777777776,
+    "knockout_em": 0.025333333333333333,
+    "em_collapse": -0.0015555555555555566,
+    "mcnemar_b_normal_only": 4,
+    "mcnemar_c_knockout_only": 11,
+    "mcnemar_exact_p": 0.11846923828125
+  },
+  "negative_control": {
+    "records": 500,
+    "mean_delta_knockout_minus_normal": 0.004751680374145507,
+    "normal_em": 0,
+    "knockout_em": 0,
+    "em_collapse": 0,
+    "mcnemar_b_normal_only": 0,
+    "mcnemar_c_knockout_only": 0,
+    "mcnemar_exact_p": 1.0
+  }
+}

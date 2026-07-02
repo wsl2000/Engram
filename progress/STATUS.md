@@ -1,3 +1,18 @@
+# H37.0 - registered Tier-1 decision: FAIL; no Engram H100 active
+
+- Timestamp: 2026-07-02T18:06:05Z.
+- Elapsed: H37.0 for the v3 resumed objective.
+- Feedback loop: `git pull --rebase origin main` completed and reported `Already up to date`; latest feedback remains `feedback/review-20260702T1624Z.md`.
+- Registered Tier-1 B train `175100` completed successfully (`0:0`) in `17:24:48` with `TimeLimit=20:00:00`, `ReqMem=3600G` total / `MinMemoryNode=1800G`; final checkpoint `runs/tier1_B_registered_R16_20b_tps50m/ckpt_step025432.pt` is complete at 28,027,736,107 bytes.
+- B eval `175102` completed successfully (`0:0`) in `00:03:40` with `TimeLimit=01:00:00`, `ReqMem=220G`; artifacts are `results/tier1/registered_B_R16_20b_tps50m.csv` and `.json`.
+- Decision job `175103` completed successfully (`0:0`) in `00:00:06` with `TimeLimit=00:10:00`, `ReqMem=16G`; artifact is `results/tier1/registered_decision_R16_20b_tps50m.json`.
+- Tier-1 decision: `pass=false`. Criterion A failed: B main knockout did not collapse recall (`normal_em=0.0237777778`, `knockout_em=0.0253333333`, `em_collapse=-0.0015555556`, McNemar `b=4/c=11/p=0.1184692383`; mean NLL delta knockout-normal `+0.0038076791` but not significant at the pre-registered gate).
+- Criterion B failed: B-A main EM gap was only `0.0073333333` (`A=0.0164444444`, `B=0.0237777778`) versus the required `>=0.20`, with McNemar `p=0.0099326684` but far below the magnitude gate.
+- Criterion C passed: negative-control EM remains `0.0` for A and B, so the failed Tier-1 is not explained by a broad evaluation contamination signal.
+- Active H100 usage for this Engram objective is 0. Other visible user jobs in Slurm are unrelated and untouched.
+- Current operational decision: do not auto-launch Tier-2. This follows both handoff ordering (Tier-2 only after Tier-1 pass plus data/MFU gates) and `feedback/review-20260702T1624Z.md` (hard gate before any Tier-2: prove fused/memory-efficient CE in the training path, test `micro_batch_size=8`, rerun 200-step calibration to target `>=18%` MFU, then get explicit owner scope approval).
+- Next: push this milestone, then update `REPORT.md` to label the current v3 result as Tier-1 mechanism FAIL with Tier-2 not launched because the prerequisite mechanism gate failed and the Tier-2 cost/efficiency hard gate is unresolved.
+
 # H36.6 - feedback hard gate acknowledged
 
 - Timestamp: 2026-07-02T17:45:00Z.
